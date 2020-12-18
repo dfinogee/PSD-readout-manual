@@ -1,0 +1,12 @@
+{ "signal" : [
+  { "name": "clk",  "wave": "P................." },
+  { "name": "data_wf_calc_fifo isempty", "wave": "10................" }, 
+  { "name": "data_wf_calc_fifo data", "wave" : "x=.=................", "data": ["ev0", "ev1"] },
+  { "name": "data_wf_calc_fifo rden", "wave": "0.10..............." },
+  { "name": "state",  "wave": "=.==", "data": ["wait", "header", "tail", "data"] },
+ // { "name": "common_header_fifo wren", "wave": "0.10................" }
+  
+  
+  
+
+]}

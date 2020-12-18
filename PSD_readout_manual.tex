@@ -38,12 +38,24 @@ Each channel collect data in FIFO (chdata\_fifo) in hit packet format and emit r
 
 Mean hit rate per channel = SYSCKL / total channels / packet lenght. SYSCKL = n * ADCclk = 240MHz; total channels = 32; packet lenght = 1. Max mean hit rate is 7.5 MHz.
 
+fig.~\ref{fig:2} Represents forming hit packet, should be reimplmented with fit procedure. 
+
 
 \begin{figure}[H]
 	\centering 
 	\includegraphics[width=0.5\textwidth]{ADC_event_collection.png}
-	\caption{\label{fig:1} Data collecting scheme for single channel}
+	\caption{\label{fig:1} Channel data collecting scheme}
 \end{figure}
+
+\begin{figure}[H]
+	\centering 
+	\includegraphics[width=1.0\textwidth]{ADC_ch_data_collector_wave.png}
+	\caption{\label{fig:2} Channel data collecting waveform}
+\end{figure}
+
+
+
+
 
 \begin{table}[H]
 \centering
@@ -69,6 +81,8 @@ word & 79 .. 64 & 63 .. 48 & 47 .. 32 & 31 .. 16 & 15 .. 0 \\ \hline
 todo: wf points num to data words num
 
 todo: fit procedure implementing in waveform processing
+
+todo: ch ready signal after packet pushed
 
 \subsection{Data collecting from channels fifo}
 
