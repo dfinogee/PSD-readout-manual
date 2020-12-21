@@ -34,7 +34,7 @@ Actual version of the document is avaliable at github:
 \section{ADC data processing}
 
 \subsection{Channel data collecting}
-Each channel collect data in FIFO (chdata\_fifo) in hit packet format and emit ready signal after data stored in fifo. Ready signal is synchronous to signal threshold crossing and used for event ADC timestamp fig.~\ref{fig:1}. Implemented in PSD\_channel\_calc.
+Each channel collect data in FIFO (chdata\_fifo) in hit packet format and emit ready signal after data stored in fifo. Ready signal is synchronous to signal threshold crossing and used for event ADC timestamp fig.~\ref{fig:1}. It is implemented in PSD\_channel\_calc.
 
 \begin{figure}[H]
 	\centering 
@@ -53,7 +53,7 @@ todo: readout rate, missing packets
 \begin{figure}[H]
 	\centering 
 	\includegraphics[width=1.0\textwidth]{ADC_ch_data_collector_wave.png}
-	\caption{\label{fig:2} Channel data collecting waveform}
+	\caption{\label{fig:2} Channel data collecting signals}
 \end{figure}
 
 
@@ -65,7 +65,7 @@ todo: readout rate, missing packets
 \begin{tabular}{| l | l | l | l | l | l |}
 \hline
 word & 79 .. 72 & 71 .. 64 & 63 .. 34 & 33 .. 16 & 15 .. 0 \\ \hline
-1 & waveform points number & channel & 0x0 & signal charge & waveform zero level \\ \hline
+1 & num data words & channel & 0x0 & signal charge & waveform zero level \\ \hline
 \end{tabular}
 \caption{hit packet header.\label{tab1}}
 \end{table}
@@ -89,11 +89,28 @@ word & 79 .. 64 & 63 .. 48 & 47 .. 32 & 31 .. 16 & 15 .. 0 \\ \hline
 
 \subsection{Data collecting from channels fifo}
 
+Each channel generate single strobe with fixed latency to threshold crossing indicating waveform measurement. 32 bit strobe word is trored to data\_wf\_calc\_fifo with mc index and ADC timestamp. FSM read stored strobes and collect data from fired channels storing outputs to common\_data\_fifo, each event header word with timing and size info stored in common\_header\_fifo. Shematic represented on figure ~\ref{fig:3}.
+
 \begin{figure}[H]
 	\centering 
 	\includegraphics[width=0.5\textwidth]{ADC_common_event_collection.png}
 	\caption{\label{fig:3} Data collecting scheme from all channels fifos}
 \end{figure}
+
+
+FSM is switched from wait to start state when data\_wf\_calc\_fifo\_isempty became '0' and fifo output is latched. Priority encoder show next fired channel from strobe and data collected from fired channel to common\_data\_fifo with hit\_packet\_iterator. input to priory encoder is shifted to bit after fired channel when iterator reach last number. Priority encoder could be equal or less than 32 bit. Simulation outputs presented on figure ~\ref{fig:4}.
+
+\begin{figure}[H]
+	\centering 
+	\includegraphics[width=1.0\textwidth]{ADC_common_data_collector_wave.png}
+	\caption{\label{fig:4} Data collecting signal from all channels fifos}
+\end{figure}
+
+
+
+
+
+
 
 todo: waveform bias
 todo: data without waveforms
@@ -133,7 +150,7 @@ addr & 31 .. 30 & 29 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 14 & 13 .. 1
 \begin{tabular}{| l | l | l | l | l | l | l | l | l |}
 \hline
 addr & 31 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 12 & 11 .. 8 & 7 .. 4 & 3 .. 0 \\ \hline
-16 & \multicolumn{4}{c|}{0x0} & waveform length 0..3 [(reg+1)*4] & signal delay in strobe & \multicolumn{2}{c|}{control bits} \\ \hline
+16 & \multicolumn{4}{c|}{0x0} & waveform length 0..3 [(reg+1)*4] & strobe offset 0..12 & \multicolumn{2}{c|}{control bits} \\ \hline
 17 & \multicolumn{8}{c|}{negative channel mask ibit = ich} \\ \hline
 \end{tabular}
 \caption{ADC readout control.\label{tab3}}
