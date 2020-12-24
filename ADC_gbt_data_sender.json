@@ -1,0 +1,17 @@
+{ "signal" : [
+  { "name": "clk",  "wave": "P................." },
+  { "name": "header_fifo isempty", "wave": "1.0............" }, 
+
+  { "name": "header_fifo rden", "wave": "0.10..........." },
+  { "name": "header_fifo data", "wave" : "x.=............", "data": ["header 1"] },  
+  { "name": "header_fifo data ff", "wave" : "x..=...........", "data": ["header 1 ms 1"] },
+  {},
+  { "name": "current ms", "wave" : "=..=...........", "data": ["ms 0", "ms 1"] },
+  { "name": "is new ms", "wave" : "0.10...........", "data": ["ms 0", "ms 1"] },
+  {},
+  { "name": "state",  "wave": "=.===..........", "data": ["wait", "start", "hder", "data"] },
+  
+  
+  
+
+]}

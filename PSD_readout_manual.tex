@@ -64,8 +64,8 @@ todo: readout rate, missing packets
 \centering
 \begin{tabular}{| l | l | l | l | l | l |}
 \hline
-word & 79 .. 72 & 71 .. 64 & 63 .. 34 & 33 .. 16 & 15 .. 0 \\ \hline
-1 & num data words & channel & 0x0 & signal charge & waveform zero level \\ \hline
+word & 79 .. 72 & 71 .. 64 & 63 .. 36 & 35 .. 16 & 15 .. 0 \\ \hline
+1 & channel & total data words in packet& 0x0 & signal charge & waveform zero level \\ \hline
 \end{tabular}
 \caption{hit packet header.\label{tab1}}
 \end{table}
@@ -77,7 +77,7 @@ word & 79 .. 72 & 71 .. 64 & 63 .. 34 & 33 .. 16 & 15 .. 0 \\ \hline
 word & 79 .. 64 & 63 .. 48 & 47 .. 32 & 31 .. 16 & 15 .. 0 \\ \hline
 1 & 0x0 & waveform point n & waveform point n+1 & waveform point n+2 & waveform point n+3 \\ \hline
 \end{tabular}
-\caption{hit packet data word.\label{tab1}}
+\caption{hit packet data word.\label{tab2}}
 \end{table}
 
 
@@ -116,6 +116,36 @@ todo: waveform bias
 todo: data without waveforms
 todo: reset wignal for data and sys clocks.
 todo: readout rate, missing packets
+todo: fifo size
+
+
+\subsection{GBT data sender}
+
+
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l | l | l | l | l | l | l |}
+\hline
+word type & 79 .. 72 & 71 .. 64 & 63 .. 48 & 47 .. 40 & 39 .. 32 & 31 .. 16 & 15 .. 0 \\ \hline
+ms header & 0xA0 & 0x0  & \multicolumn{5}{c|}{ms index} \\ \hline
+event header & 0xB0 & \multicolumn{2}{c|}{0x0} & n fired channels & words in packet & \multicolumn{2}{c|}{adc time} \\ \hline
+hit header & \multicolumn{7}{c|}{hit header (tab.~\ref{tab1})} \\ \hline
+hit data & \multicolumn{7}{c|}{hit data (tab.~\ref{tab2})} \\ \hline
+hit data & \multicolumn{7}{c|}{hit data (tab.~\ref{tab2})} \\ \hline
+hit data & \multicolumn{7}{c|}{hit data (tab.~\ref{tab2})} \\ \hline
+hit data & \multicolumn{7}{c|}{hit data (tab.~\ref{tab2})} \\ \hline
+  & \multicolumn{7}{c|}{ ... } \\ \hline
+
+event header & 0xB0 & \multicolumn{2}{c|}{0x0} & n fired channels & words in packet & \multicolumn{2}{c|}{adc time} \\ \hline
+  & \multicolumn{7}{c|}{ ... } \\ \hline
+
+\end{tabular}
+\caption{GBT data format.\label{tab6}}
+\end{table}
+
+
+
 
 \section{ADC control}
 \subsection{control registers}
