@@ -33,13 +33,22 @@ Actual version of the document is avaliable at github:
 
 \section{ADC data processing}
 
+Each channel\_calc component collect data in FIFO (chdata\_fifo) in hit packet format and emit ready signal after data stored in fifo. Ready signal is synchronous to threshold crossing and used for event ADC timestamp fig.~\ref{fig:1}.
+
+\begin{figure}[H]
+	\centering 
+	\includegraphics[width=0.8\textwidth]{ADC_readout.png}
+	\caption{\label{fig:1} ADC data readout scheme}
+\end{figure}
+
+
 \subsection{Channel data collecting}
-Each channel collect data in FIFO (chdata\_fifo) in hit packet format and emit ready signal after data stored in fifo. Ready signal is synchronous to signal threshold crossing and used for event ADC timestamp fig.~\ref{fig:1}. It is implemented in PSD\_channel\_calc.
+
 
 \begin{figure}[H]
 	\centering 
 	\includegraphics[width=0.5\textwidth]{ADC_event_collection.png}
-	\caption{\label{fig:1} Channel data collecting scheme}
+	\caption{\label{fig:2} Channel data collecting scheme}
 \end{figure}
 Mean hit rate per channel = SYSCKL / total channels + 2 sys cycle / packet length. SYSCKL = n * ADCclk = 240MHz; total channels = 32; packet lenght = 1. Max mean hit rate is 7 MHz. (0.78 MHz with 80MHz and 2 waveform packets; 2.2 for 10 channels)
 
