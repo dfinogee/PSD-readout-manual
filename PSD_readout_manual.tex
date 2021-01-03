@@ -32,8 +32,7 @@ Actual version of the document is avaliable at github:
 \newpage
 
 \section{ADC data processing}
-
-Each channel\_calc component collect data in FIFO (chdata\_fifo) in hit packet format and emit ready signal after data stored in fifo. Ready signal is synchronous to threshold crossing and used for event ADC timestamp fig.~\ref{fig:1}.
+PSD\_data\_readout component receive data from all ADCs, process waveform and output data in GBT packets. Schematic of component is presented on fig.~\ref{fig:1}.
 
 \begin{figure}[H]
 	\centering 
@@ -42,93 +41,85 @@ Each channel\_calc component collect data in FIFO (chdata\_fifo) in hit packet f
 \end{figure}
 
 
-\subsection{Channel data collecting}
+
+
+\subsection{Component channels\_calc}
+Channel\_calc component scheme is presented on figure~\ref{fig:2}. ADC data inverted for negative signals, zero level and RMS are calculated and avaliable from slow control.
 
 
 \begin{figure}[H]
 	\centering 
-	\includegraphics[width=0.5\textwidth]{ADC_event_collection.png}
-	\caption{\label{fig:2} Channel data collecting scheme}
+	\includegraphics[width=1.0\textwidth]{ADC_event_collection.png}
+	\caption{\label{fig:2} Channel data processing scheme}
 \end{figure}
-Mean hit rate per channel = SYSCKL / total channels + 2 sys cycle / packet length. SYSCKL = n * ADCclk = 240MHz; total channels = 32; packet lenght = 1. Max mean hit rate is 7 MHz. (0.78 MHz with 80MHz and 2 waveform packets; 2.2 for 10 channels)
 
 
-Hit packet forming is implemented in ch\_data\_colletcor with three fifos. raw\_waveform\_fifo write raw ADC data by wf\_strobe signal. header\_ch\_fifo store zero level (if future all data avaliable at the beginning of waveform calculation) by strobe start signal. calc\_ready signal raised for one cycle when charge (fit in future) is ready. By calc\_ready signal hit header with charge and data from header\_ch\_fifo is written to chdata\_fifo, header\_ch\_fifo is readed, counter started to read raw\_waveform\_fifo. fig.~\ref{fig:2} Represents forming hit packet.
+Strobe\_generator component forms waveform gate, start and stop signals by threshold crossing taking waveform length and offset parameters. Waveform data that are available from the start (zero level) are latched while strobe. Signal diagram of the component is presented on figure~\ref{fig:3}
 
-todo: data with out raw data
-todo: ch ready signal after packet pushed
-todo: readout rate, missing packets
+\begin{figure}[H]
+	\centering 
+	\includegraphics[width=0.8\textwidth]{wf_strobe_diag.png}
+	\caption{\label{fig:3} Signal waveform strobe (length 16, offset 3)}
+\end{figure}
+
+
+Ch\_data\_collector store waveform point in raw\_fifo by strobe signal and start waveform data (zero level) by start signal. When charge ready signal raised, charge and start data from header\_fifo stored in data\_fifo as hit packed header. This allow to upgrade charge calculation with fitting procedure and change calculation delay. In next cycle waveform points are read from raw\_fifo and (if sending wf points parameter is set on) stored as hit data in ch\_data\_fifo. After hit packet stored, ready signal raised or dropped signal in case fifo was full and hit packet was dropped. Ready and dropped signals are synchronous to threshold crossing and used for event ADC timestamp.  Signals diagramm of the component is presented on figure~\ref{fig:4}.
+
 
 \begin{figure}[H]
 	\centering 
 	\includegraphics[width=1.0\textwidth]{ADC_ch_data_collector_wave.png}
-	\caption{\label{fig:2} Channel data collecting signals}
+	\caption{\label{fig:4} Channel data collecting signals}
 \end{figure}
 
+Signals could be processed one after another without dead time. If next adc point after waveform gate is higher than threshold, new signal gate is formed. Signal time is next adc cycle after first gate, not is real time of second waveform threshold crossing. Signal diagram for such case is presented on figure~\ref{fig:5}.
 
 
+\begin{figure}[H]
+	\centering 
+	\includegraphics[width=1.0\textwidth]{ADC_ch_data_collector_wave_pileup.png}
+	\caption{\label{fig:5} Channel data collecting signals}
+\end{figure}
 
-
-\begin{table}[H]
-\centering
-\begin{tabular}{| l | l | l | l | l | l |}
-\hline
-word & 79 .. 72 & 71 .. 64 & 63 .. 36 & 35 .. 16 & 15 .. 0 \\ \hline
-1 & channel & total data words in packet& 0x0 & signal charge & waveform zero level \\ \hline
-\end{tabular}
-\caption{hit packet header.\label{tab1}}
-\end{table}
-
-\begin{table}[H]
-\centering
-\begin{tabular}{| l | l | l | l | l | l |}
-\hline
-word & 79 .. 64 & 63 .. 48 & 47 .. 32 & 31 .. 16 & 15 .. 0 \\ \hline
-1 & 0x0 & waveform point n & waveform point n+1 & waveform point n+2 & waveform point n+3 \\ \hline
-\end{tabular}
-\caption{hit packet data word.\label{tab2}}
-\end{table}
-
-
-
-
-
-
-
-
-\subsection{Data collecting from channels fifo}
-
-Each channel generate single strobe with fixed latency to threshold crossing indicating waveform measurement. 32 bit strobe word is trored to data\_wf\_calc\_fifo with mc index and ADC timestamp. FSM read stored strobes and collect data from fired channels storing outputs to common\_data\_fifo, each event header word with timing and size info stored in common\_header\_fifo. Shematic represented on figure ~\ref{fig:3}.
+\subsection{Component common\_data\_collector}
+Each channel generate single strobe with fixed latency to threshold crossing indicating waveform measurement. 32 bit strobe word is stored to data\_wf\_calc\_fifo with mc index and ADC timestamp. FSM read stored strobes and collect data from fired channels storing outputs to common\_data\_fifo, each event header word with timing and data size info stored in common\_header\_fifo. Shematic represented on figure ~\ref{fig:3}.
 
 \begin{figure}[H]
 	\centering 
 	\includegraphics[width=0.5\textwidth]{ADC_common_event_collection.png}
-	\caption{\label{fig:3} Data collecting scheme from all channels fifos}
+	\caption{\label{fig:6} Data collecting scheme from all channels fifos}
 \end{figure}
 
 
-FSM is switched from wait to start state when data\_wf\_calc\_fifo\_isempty became '0' and fifo output is latched. Priority encoder show next fired channel from strobe and data collected from fired channel to common\_data\_fifo with hit\_packet\_iterator. input to priory encoder is shifted to bit after fired channel when iterator reach last number. Priority encoder could be equal or less than 32 bit. Simulation outputs presented on figure ~\ref{fig:4}.
+FSM is switched from wait to start state when data\_wf\_calc\_fifo\_isempty became '0' and fifo output is latched. Priority encoder show next fired channel from strobe and data collected from fired channel to common\_data\_fifo with hit\_packet\_iterator. Input to priory encoder is shifted to bit after fired channel when iterator reach last fired channel. Priority encoder could be equal or less than 32 bit. Simulation outputs presented on figure ~\ref{fig:4}.
 
 \begin{figure}[H]
 	\centering 
 	\includegraphics[width=1.0\textwidth]{ADC_common_data_collector_wave.png}
-	\caption{\label{fig:4} Data collecting signal from all channels fifos}
+	\caption{\label{fig:7} Data collecting signal from all channels fifos}
+\end{figure}
+
+Collecting data from all channels takes two additional FSM cycle. Mean hit rate per channel in case all channels fired is SYSCKL / total channels + 2 cycle / packet length. Test beam: 80MHz / 12 / 5 = 1.3MHz. Final setup: 120 (240) / 32 / 1 = 3.5 (7) MHz.
+
+
+\subsection{Component GBT\_data\_sender}
+
+Data stored in common\_data\_fifo in component common\_data\_collector are read by system clock with writing rate. Event and microslice headers are formed by data from common\_header\_fifo. Built GBT data packets are stored in gbt\_data\_fifo and read by GBT TX clock. Signal diagram is presented on figure~\ref{fig:8}. 
+
+
+\begin{figure}[H]
+	\centering 
+	\includegraphics[width=1.0\textwidth]{GBT_sender_wave.png}
+	\caption{\label{fig:8} Channel data collecting signals}
 \end{figure}
 
 
 
+Data rate limit is 80bit X 40MHz = 0.4 GB/s(GBT). Hit rate limit per channel (without microslice word) is 40MHz / 33 (packet length) = 1,2 MHz in case all channels are fired. The rate could be increased to  2.4 MHz hits per channel in case all 32 channels are fired. If one hit data will be less than 40bit event packet will contain 17 GBT words.
+
+GBT packet format is presented on tables: ~\ref{tab1}, ~\ref{tab2}, ~\ref{tab3}
 
 
-
-
-todo: waveform bias
-todo: data without waveforms
-todo: reset wignal for data and sys clocks.
-todo: readout rate, missing packets
-todo: fifo size
-
-
-\subsection{GBT data sender}
 
 
 
@@ -138,7 +129,7 @@ todo: fifo size
 \hline
 word type & 79 .. 72 & 71 .. 64 & 63 .. 48 & 47 .. 40 & 39 .. 32 & 31 .. 16 & 15 .. 0 \\ \hline
 ms header & 0xA0 & 0x0  & \multicolumn{5}{c|}{ms index} \\ \hline
-event header & 0xB0 & \multicolumn{2}{c|}{0x0} & n fired channels & words in packet & \multicolumn{2}{c|}{adc time} \\ \hline
+event header & 0xB0 & \multicolumn{2}{c|}{0x0} & n fired channels & words in packet * & \multicolumn{2}{c|}{adc time} \\ \hline
 hit header & \multicolumn{7}{c|}{hit header (tab.~\ref{tab1})} \\ \hline
 hit data & \multicolumn{7}{c|}{hit data (tab.~\ref{tab2})} \\ \hline
 hit data & \multicolumn{7}{c|}{hit data (tab.~\ref{tab2})} \\ \hline
@@ -150,14 +141,34 @@ event header & 0xB0 & \multicolumn{2}{c|}{0x0} & n fired channels & words in pac
   & \multicolumn{7}{c|}{ ... } \\ \hline
 
 \end{tabular}
-\caption{GBT data format.\label{tab6}}
+\caption{GBT data format. [* number of GBT words in event packet: event header + all hit packets]\label{tab1}}
 \end{table}
 
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l | l | l | l | l |}
+\hline
+word & 79 .. 72 & 71 .. 64 & 63 .. 36 & 35 .. 16 & 15 .. 0 \\ \hline
+1 & channel &words in packet *& 0x0 & signal charge & waveform zero level \\ \hline
+\end{tabular}
+\caption{hit packet header. [* total GBT words in hit packet: header + data words]\label{tab2}}
+\end{table}
 
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l | l | l | l | l |}
+\hline
+word & 79 .. 64 & 63 .. 48 & 47 .. 32 & 31 .. 16 & 15 .. 0 \\ \hline
+1 & 0x0 & waveform point n & waveform point n+1 & waveform point n+2 & waveform point n+3 \\ \hline
+\end{tabular}
+\caption{hit packet data word.\label{tab3}}
+\end{table}
 
 
 \section{ADC control}
 \subsection{control registers}
+
+To avoid configuration corruption while GBT link fail, register 31 is reserved for lock key word. Control registers are available for writing if register 31 is 0xafafafaf. Register 31 is always open for writing.
 
 \begin{table}[H]
 \centering
@@ -181,7 +192,7 @@ addr & 31 .. 30 & 29 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 14 & 13 .. 1
 14 & 0x0 & \multicolumn{4}{c|}{threshold ch29} & 0x0 & \multicolumn{4}{c|}{threshold ch28} \\ \hline
 15 & 0x0 & \multicolumn{4}{c|}{threshold ch31} & 0x0 & \multicolumn{4}{c|}{threshold ch30} \\ \hline
 \end{tabular}
-\caption{ADC channels threshold control.\label{tab2}}
+\caption{ADC channels threshold control.\label{tab4}}
 \end{table}
 
 \begin{table}[H]
@@ -192,7 +203,7 @@ addr & 31 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 12 & 11 .. 8 & 7 .. 4 &
 16 & \multicolumn{4}{c|}{0x0} & waveform length 0..3 [(reg+1)*4] & strobe offset 0..12 & \multicolumn{2}{c|}{control bits} \\ \hline
 17 & \multicolumn{8}{c|}{negative channel mask ibit = ich} \\ \hline
 \end{tabular}
-\caption{ADC readout control.\label{tab3}}
+\caption{ADC readout control.\label{tab5}}
 \end{table}
 
 \begin{table}[H]
@@ -205,7 +216,7 @@ bit & description \\ \hline
 2 & readout fsm reset \\ \hline
 3 & errors reset \\ \hline
 \end{tabular}
-\caption{Control bits\label{tab4}}
+\caption{Control bits\label{tab6}}
 \end{table}
 
 
@@ -216,7 +227,7 @@ bit & description \\ \hline
 addr & 31 .. 18 & 17 .. 17 & 16 .. 16 & 15 .. 8 & 7 .. 7 & 6 .. 0 \\ \hline
 18 & 0x0 & WR & ENA & DATA & 0x0 & ADDR \\ \hline
 \end{tabular}
-\caption{HV control via I2C.\label{tab5}}
+\caption{HV control via I2C.\label{tab7}}
 \end{table}
 
 \end{document}
