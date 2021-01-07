@@ -125,23 +125,23 @@ GBT packet format is presented on tables: ~\ref{tab1}, ~\ref{tab2}, ~\ref{tab3}
 
 \begin{table}[H]
 \centering
-\begin{tabular}{| l | l | l | l | l | l | l | l |}
+\begin{tabular}{| l | l | l | l | l | l | l | l | l |}
 \hline
-word type & 79 .. 72 & 71 .. 64 & 63 .. 48 & 47 .. 40 & 39 .. 32 & 31 .. 16 & 15 .. 0 \\ \hline
-ms header & 0xA0 & 0x0  & \multicolumn{5}{c|}{ms index} \\ \hline
-event header & 0xB0 & \multicolumn{2}{c|}{0x0} & n fired channels & words in packet * & \multicolumn{2}{c|}{adc time} \\ \hline
-hit header & \multicolumn{7}{c|}{hit header (tab.~\ref{tab1})} \\ \hline
-hit data & \multicolumn{7}{c|}{hit data (tab.~\ref{tab2})} \\ \hline
-hit data & \multicolumn{7}{c|}{hit data (tab.~\ref{tab2})} \\ \hline
-hit data & \multicolumn{7}{c|}{hit data (tab.~\ref{tab2})} \\ \hline
-hit data & \multicolumn{7}{c|}{hit data (tab.~\ref{tab2})} \\ \hline
-  & \multicolumn{7}{c|}{ ... } \\ \hline
+word type & 79 .. 76 & 75 .. 72 & 71 .. 64 & 63 .. 48 & 47 .. 40 & 39 .. 32 & 31 .. 16 & 15 .. 0 \\ \hline
+ms header & 0xA & \multicolumn{2}{c|}{0x0}  & \multicolumn{5}{c|}{ms index} \\ \hline
+event header & 0xB & ADC idx** & \multicolumn{2}{c|}{0x0} & n fired channels & words in packet * & \multicolumn{2}{c|}{adc time} \\ \hline
+hit header & \multicolumn{8}{c|}{hit header (tab.~\ref{tab1})} \\ \hline
+hit data & \multicolumn{8}{c|}{hit data (tab.~\ref{tab2})} \\ \hline
+hit data & \multicolumn{8}{c|}{hit data (tab.~\ref{tab2})} \\ \hline
+hit data & \multicolumn{8}{c|}{hit data (tab.~\ref{tab2})} \\ \hline
+hit data & \multicolumn{8}{c|}{hit data (tab.~\ref{tab2})} \\ \hline
+  & \multicolumn{8}{c|}{ ... } \\ \hline
 
-event header & 0xB0 & \multicolumn{2}{c|}{0x0} & n fired channels & words in packet & \multicolumn{2}{c|}{adc time} \\ \hline
+event header & 0xB & ADC idx** & \multicolumn{2}{c|}{0x0} & n fired channels & words in packet * & \multicolumn{2}{c|}{adc time} \\ \hline
   & \multicolumn{7}{c|}{ ... } \\ \hline
 
 \end{tabular}
-\caption{GBT data format. [* number of GBT words in event packet: event header + all hit packets]\label{tab1}}
+\caption{GBT data format. [* number of GBT words in event packet: event header + all hit packets] [** ADC board index] \label{tab1}}
 \end{table}
 
 \begin{table}[H]
@@ -228,6 +228,53 @@ addr & 31 .. 18 & 17 .. 17 & 16 .. 16 & 15 .. 8 & 7 .. 7 & 6 .. 0 \\ \hline
 18 & 0x0 & WR & ENA & DATA & 0x0 & ADDR \\ \hline
 \end{tabular}
 \caption{HV control via I2C.\label{tab7}}
+\end{table}
+
+
+\section{CRI modules}
+\subsection{ADC GBT emulator}
+
+ADC GBT emulator generate GBT ADC packets filling hit packages with continuous hit counter. Parameters are:
+
+\begin{itemize}
+\item ms\_index - current microslice index @GBTclk to generate ms headers.
+
+
+\item  event\_rate is number of GBT clock cycles between packets (from start to start). If previous packet was not sent, and is time to generate new one, new one skipped.
+
+\item nch\_in\_even - number of hits per event 1 ... 32. Emulate fired channels.
+
+\item hit\_packet\_len - number of hit packet words, including hit header 1 ... 5.
+
+\end{itemize}
+
+Emulator FSM is based on three counters, signals diagram is presented on figure \ref{fig:9}; generated data format is presented on figure \ref{tab8}.
+
+\begin{figure}[H]
+	\centering 
+	\includegraphics[width=1.0\textwidth]{ADC_GBT_emu_waves.png}
+	\caption{\label{fig:9} ADC GBT emulator signals}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l | l | l | l | l | l | l | l |}
+\hline
+word type & 79 .. 76 & 75 .. 72 & 71 .. 64 & 63 .. 48 & 47 .. 40 & 39 .. 32 & 31 .. 16 & 15 .. 0 \\ \hline
+ms header & 0xA & \multicolumn{2}{c|}{0x0}  & \multicolumn{5}{c|}{ms index} \\ \hline
+event header & 0xB & ADC idx** & \multicolumn{2}{c|}{0x0} & n hits & packet len * & \multicolumn{2}{c|}{0x0} \\ \hline
+hit header & \multicolumn{2}{c|}{hit number} & words in hit packet *** & \multicolumn{5}{c|}{hit counter[63 .. 0]} \\ \hline
+hit data & \multicolumn{8}{c|}{hit counter [79 ..0]} \\ \hline
+hit data & \multicolumn{8}{c|}{hit counter [79 ..0]} \\ \hline
+hit data & \multicolumn{8}{c|}{hit counter [79 ..0]} \\ \hline
+hit data & \multicolumn{8}{c|}{hit counter [79 ..0]} \\ \hline
+  & \multicolumn{8}{c|}{ ... } \\ \hline
+
+event header & 0xB & ADC idx** & \multicolumn{2}{c|}{0x0} & n hits & packet len * & \multicolumn{2}{c|}{0x0} \\ \hline
+  & \multicolumn{7}{c|}{ ... } \\ \hline
+
+\end{tabular}
+\caption{GBT data format. [* number of GBT words in event packet: event header + all hit packets] [** ADC board index] [*** total words in hit packet, including hit header]\label{tab8}}
 \end{table}
 
 \end{document}
