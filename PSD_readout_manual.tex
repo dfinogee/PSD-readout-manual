@@ -166,7 +166,7 @@ word & 79 .. 64 & 63 .. 48 & 47 .. 32 & 31 .. 16 & 15 .. 0 \\ \hline
 
 
 \section{ADC control}
-\subsection{control registers}
+\subsection{Control registers}
 
 To avoid configuration corruption while GBT link fail, register 31 is reserved for lock key word. Control registers are available for writing if register 31 is 0xafafafaf. Register 31 is always open for writing.
 
@@ -200,8 +200,11 @@ addr & 31 .. 30 & 29 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 14 & 13 .. 1
 \begin{tabular}{| l | l | l | l | l | l | l | l | l |}
 \hline
 addr & 31 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 12 & 11 .. 8 & 7 .. 4 & 3 .. 0 \\ \hline
-16 & \multicolumn{4}{c|}{0x0} & waveform length 0..3 [(reg+1)*4] & strobe offset 0..12 & \multicolumn{2}{c|}{control bits} \\ \hline
+16 & \multicolumn{2}{c|}{0x0} & \multicolumn{2}{c|}{status ch sel} & waveform length 0..3 [(reg+1)*4] & strobe offset 0..12 & \multicolumn{2}{c|}{control bits} \\ \hline
 17 & \multicolumn{8}{c|}{negative channel mask ibit = ich} \\ \hline
+18 & \multicolumn{8}{c|}{I2C HV bus} \\ \hline
+19 & \multicolumn{8}{c|}{microslice gen counter@25ns} \\ \hline
+20 & \multicolumn{8}{c|}{microslice period} \\ \hline
 \end{tabular}
 \caption{ADC readout control.\label{tab5}}
 \end{table}
@@ -229,6 +232,48 @@ addr & 31 .. 18 & 17 .. 17 & 16 .. 16 & 15 .. 8 & 7 .. 7 & 6 .. 0 \\ \hline
 \end{tabular}
 \caption{HV control via I2C.\label{tab7}}
 \end{table}
+
+
+\subsection{Status registers}
+
+Status registers map is presented on table \ref{tab8}. 
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l | l | l | l | l | l | l | l | l | l |}
+\hline
+addr & 31 .. 30 & 29 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 14 & 13 .. 12 & 11 .. 8 & 7 .. 4 & 3 .. 0 \\ \hline
+0 & \multicolumn{10}{c|}{microslice index 31 .. 0}\\ \hline
+1 & \multicolumn{10}{c|}{microslice index 63 .. 32}\\ \hline
+2 & \multicolumn{10}{c|}{ADC time}\\ \hline
+3 & \multicolumn{5}{c|}{RX wrclk err cnt} & \multicolumn{5}{c|}{RX err frclk cnt} \\ \hline
+4 & \multicolumn{5}{c|}{RX err detect cnt} & \multicolumn{5}{c|}{I2C HV bus}\\ \hline
+5 & \multicolumn{8}{c|}{0x0} & \multicolumn{2}{c|}{temp} \\ \hline
+6 & \multicolumn{5}{c|}{sel. channel baseline rms} & \multicolumn{5}{c|}{sel. channel baseline}\\ \hline
+\end{tabular}
+\caption{ADC channels threshold control.\label{tab8}}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l | l | l | l | l | l | l | l |}
+\hline
+addr & 15 .. 10 & 9 .. 9 & 8 .. 8 & 7 .. 0 \\ \hline
+4 & 0x0 & error ack & busy & DATA \\ \hline
+\end{tabular}
+\caption{HV status via I2C.\label{tab9}}
+\end{table}
+
+Status registers comments:
+\begin{itemize}
+\item RX err detect cnt - counter@RXclk of RX error detected bit.
+
+\item RX err frclk cnt - counter@RXclk of state when frame clock is not ready.
+
+\item RX wrclk err cnt - counter@RXclk of state when word clock is not ready.
+
+
+\end{itemize}
 
 
 \section{CRI modules}
@@ -274,7 +319,7 @@ event header & 0xB & ADC idx** & \multicolumn{2}{c|}{0x0} & n hits & packet len 
   & \multicolumn{7}{c|}{ ... } \\ \hline
 
 \end{tabular}
-\caption{GBT data format. [* number of GBT words in event packet: event header + all hit packets] [** ADC board index] [*** total words in hit packet, including hit header]\label{tab8}}
+\caption{GBT data format. [* number of GBT words in event packet: event header + all hit packets] [** ADC board index] [*** total words in hit packet, including hit header]\label{tab10}}
 \end{table}
 
 \end{document}
