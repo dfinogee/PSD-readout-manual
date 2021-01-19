@@ -283,6 +283,16 @@ Status registers comments:
 
 
 \section{CRI modules}
+
+\subsection{PSD CRI data sorting}
+
+\begin{figure}[H]
+	\centering 
+	\includegraphics[width=1.0\textwidth]{CRI_data_sort.png}
+	\caption{\label{fig:11} PSD data processing in CRI}
+\end{figure}
+
+
 \subsection{ADC GBT emulator}
 
 ADC GBT emulator generate GBT ADC packets filling hit packages with continuous hit counter. Parameters are:
@@ -327,6 +337,17 @@ event header & 0xB & ADC idx** & \multicolumn{2}{c|}{0x0} & n hits & packet len 
 \end{tabular}
 \caption{GBT data format. [* number of GBT words in event packet: event header + all hit packets] [** ADC board index] [*** total words in hit packet, including hit header]\label{tab10}}
 \end{table}
+
+
+\subsection{ADC GBT reader}
+ADC GBT reader reads GBT packets from one GBT link and store its to fifo event\_fifo. With last packet data word header word pushed to separate fifo header\_ fifo with packet lenght and microslice index. Event packet skipped when one of fifos is full. After reset fsm starts wait microslice header. Packets reads according to size in header and fsm wait next packet or microslice header. If next word after packet is neither ms or packet header, fsm starts wait ms header. Data drop info state is not implemented yet. Signal diagram is presented on figure \ref{fig:11}. 
+
+\begin{figure}[H]
+	\centering 
+	\includegraphics[width=1.0\textwidth]{ADC_GBT_reader_wave.png}
+	\caption{\label{fig:11} ADC GBT packets reader}
+\end{figure}
+
 
 \end{document}
 
