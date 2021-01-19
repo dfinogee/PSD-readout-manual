@@ -56,9 +56,13 @@ Channel\_calc component scheme is presented on figure~\ref{fig:2}. ADC data inve
 
 Strobe\_generator component forms waveform gate, start and stop signals by threshold crossing taking waveform length and offset parameters. Waveform data that are available from the start (zero level) are latched while strobe. Signal diagram of the component is presented on figure~\ref{fig:3}
 
+Waveform offset parameter determine waveform position in gate, if it is 0, first point in data is the point above threshold. Maximum offset value is 13. Latched baseline level is value before point above threshold.
+
+If one channel in common trigger mask parameter cross threshold, common trigger is generated. All channels in common trigger output parameter take waveform similar to they has threshold crossing together.
+
 \begin{figure}[H]
 	\centering 
-	\includegraphics[width=0.8\textwidth]{wf_strobe_diag.png}
+	\includegraphics[width=0.8\textwidth]{wf_strobe_diag_sim.png}
 	\caption{\label{fig:3} Signal waveform strobe (length 16, offset 3)}
 \end{figure}
 
@@ -205,8 +209,10 @@ addr & 31 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 12 & 11 .. 8 & 7 .. 4 &
 18 & \multicolumn{8}{c|}{I2C HV bus} \\ \hline
 19 & \multicolumn{8}{c|}{microslice gen counter@25ns} \\ \hline
 20 & \multicolumn{8}{c|}{microslice period} \\ \hline
+21 & \multicolumn{8}{c|}{common trigger mask *} \\ \hline
+22 & \multicolumn{8}{c|}{common trigger output **} \\ \hline
 \end{tabular}
-\caption{ADC readout control.\label{tab5}}
+\caption{ADC readout control. [* channels set generates common trigger] [** triggered channels set]\label{tab5}}
 \end{table}
 
 \begin{table}[H]

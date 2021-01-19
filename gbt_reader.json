@@ -1,0 +1,15 @@
+{ "signal" : [
+  { "name": "clk",  "wave": "P......................" },
+
+  { "name": "GBT data", "wave":  	"x.=...======.....====....======..=.=.", "data": '0x0 ms hdr d d d 0x0 hdr d d  0x0 ms hdr d d d  0x0 err' },
+  { "name": "GBT is data", "wave":  "x.0...1....0.....1..0....1....0..1.0." },
+  { "name": "MS GBT", "wave":  		"x.=....=..................=..........", "data": '0x0 MS1 MS2'},
+  { "name": "work key", "wave":		"x.=...===........==......===.........", "data": '0 ms hdr 0 hdr 0 ms hdr 0' },
+  { "name": "FSM", "wave":  		"x.=....==..=.....==.=.....==..=..=...", "data": 'ms_w hdr ev wait hdr ev wait hdr ev wait ms_w' },
+  { "name": "packet len", "wave":  	"x.=.....=.........=........=.........", "data": '0 3 2 3' },
+  { "name": "data fifo", "wave":  	"x.=....=====.....====.....=====......", "data": '0x0 hdr d d d 0x0 hdr d d  0x0 hdr d d d  0x0' },
+  { "name": "header fifo", "wave":		"x.=.......==.......==........==.........", "data": '0 ms  0 hdr 0  hdr 0' },
+  
+  
+
+]}
