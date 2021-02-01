@@ -67,7 +67,7 @@ If one channel in common trigger mask parameter cross threshold, common trigger 
 \end{figure}
 
 
-Ch\_data\_collector store waveform point in raw\_fifo by strobe signal and start waveform data (zero level) by start signal. When charge ready signal raised, charge and start data from header\_fifo stored in data\_fifo as hit packed header. This allow to upgrade charge calculation with fitting procedure and change calculation delay. In next cycle waveform points are read from raw\_fifo and (if sending wf points parameter is set on) stored as hit data in ch\_data\_fifo. After hit packet stored, ready signal raised or dropped signal in case fifo was full and hit packet was dropped. Ready and dropped signals are synchronous to threshold crossing and used for event ADC timestamp.  Signals diagramm of the component is presented on figure~\ref{fig:4}.
+Ch\_data\_collector store waveform point in raw\_fifo by strobe signal and start waveform data (zero level) by start signal. When charge ready signal raised, charge and start data from header\_fifo stored in data\_fifo as hit packed header. This allow to upgrade charge calculation with fitting procedure and change calculation delay. In next cycle waveform points are read from raw\_fifo and (if sending wf points parameter is set on) stored as hit data in ch\_data\_fifo. After hit packet stored, ready signal raised or dropped signal in case fifo was full and hit packet was dropped. Ready and dropped signals are synchronous to threshold crossing and used for event ADC timestamp.  Signals diagramm of the component is presented on figure~\ref{fig:4}. The write size of ch\_data\_fifo should be equal to ceil(calculation\_delay / waveform\_lenght)*waveform\_lenght. The size of ch\_header\_fifo should be ceil(calculation\_delay / waveform\_lenght). Write rate for mentioned fifo is equal to read rate.
 
 
 \begin{figure}[H]
@@ -324,7 +324,7 @@ Emulator FSM is based on three counters, signals diagram is presented on figure 
 word type & 79 .. 76 & 75 .. 72 & 71 .. 64 & 63 .. 48 & 47 .. 40 & 39 .. 32 & 31 .. 16 & 15 .. 0 \\ \hline
 ms header & 0xA & \multicolumn{2}{c|}{0x0}  & \multicolumn{5}{c|}{ms index} \\ \hline
 event header & 0xB & ADC idx** & \multicolumn{2}{c|}{0x0} & n hits & packet len * & \multicolumn{2}{c|}{0x0} \\ \hline
-hit header & \multicolumn{2}{c|}{hit number} & words in hit packet *** & \multicolumn{5}{c|}{hit counter[63 .. 0]} \\ \hline
+hit header & \multicolumn{2}{c|}{hit number} & words in hit packet *** & \multicolumn{5}{c|}{ms index} \\ \hline
 hit data & \multicolumn{8}{c|}{hit counter [79 ..0]} \\ \hline
 hit data & \multicolumn{8}{c|}{hit counter [79 ..0]} \\ \hline
 hit data & \multicolumn{8}{c|}{hit counter [79 ..0]} \\ \hline
@@ -347,6 +347,100 @@ ADC GBT reader reads GBT packets from one GBT link and store its to fifo event\_
 	\includegraphics[width=1.0\textwidth]{ADC_GBT_reader_wave.png}
 	\caption{\label{fig:11} ADC GBT packets reader}
 \end{figure}
+
+\subsection{GBT Data Sorter component}
+Components header\_fifo and event\_fifo from adc-gbt-readers for all gbt links are connected to gbt-data-sorter component. Each new microslice value collected in ms-fifo. FSM switch thought all gbt links and read all one by one links with microslice less or equal to current microslice. Data for links with equal microslice to current-ms output from the sorter, for links with less microslice data is dropped. When all links have ms higher than current ms or are empty means that all data for current microslie are read. Such condition starts counter to wait data from all links. Then counter reach value 127, FSM swithced to next-ms state. Next microslice readed from fifo and header with new ms value sent to output stream. Signal diagram presented on figure \ref{fig:10} Output data represent combined GBT packets from all GBT link. All events from GBT links for one microslice follows one after another. Data for different microslices divided by microslice header with format 0xDAF0 + microslice (64bit). 
+
+
+\begin{figure}[H]
+	\centering 
+	\includegraphics[width=1.0\textwidth]{gbt-sorter-waves.png}
+	\caption{\label{fig:10} gbt-data-sorter signals diagram: mew ms read and event sent from one link }
+\end{figure}
+
+
+\subsection{IPbus face component}
+IPbus-face-component read data stream from gbt-data-sorter and resize data to width 32 bit. Data stream from gbt-data-sorter stored in fifo-ipbus-face with 80bit write width and 160 read width. Output 160bit word divided in 5 32bit words. Each IPbus read cycle counter 0..4 increased by one, fifo-ipbus-face readed when counter equal 4 and ipbus-read signal is up. While reading empty fifo-ipbus-face all bits are '1'. Signals diagram is presented on figure \ref{fig:11}.
+
+\begin{figure}[H]
+	\centering 
+	\includegraphics[width=1.0\textwidth]{ipbus-face-waves.png}
+	\caption{\label{fig:11} IPbus-face signals diagram }
+\end{figure}
+
+
+\subsection{Evaluation Board for readout}
+
+Kintex Evaluation board include CRI data processing module and use IPbus-face module for readout. Real GBT link is connected to 0 link, other links can receive data from emulators. Simple microslice generator is used to provide ms to gbt-data-sorter and to ADC board. Tables \ref{tab11} and \ref{tab13} present control and status registers map. GBT slow control and IPbus readout ported via dedicated addresses prioritized to status and control registers (could replace status and control registers), shown in table \ref{tab15} 
+
+
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l | l | l | l | l | l | l | l |}
+\hline
+addr & 31 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 12 & 11 .. 8 & 7 .. 4 & 3 .. 0 \\ \hline
+0 & \multicolumn{6}{c|}{0x0}  & \multicolumn{2}{c|}{control word} \\ \hline
+1 & \multicolumn{8}{c|}{microslice gen counter@25ns}  \\ \hline
+2 & \multicolumn{8}{c|}{microslice period}  \\ \hline
+\end{tabular}
+\caption{Evaluation board control registers.\label{tab11}}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l |}
+\hline
+bit & description \\ \hline
+0 & data processing reset \\ \hline
+
+\end{tabular}
+\caption{Control word bits\label{tab12}}
+\end{table}
+
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l | l | l | l | l | l | l | l |}
+\hline
+addr & 31 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 12 & 11 .. 8 & 7 .. 4 & 3 .. 0 \\ \hline
+0 & \multicolumn{4}{c|}{0x0}  & \multicolumn{4}{c|}{GBT status} \\ \hline
+
+\end{tabular}
+\caption{Evaluation board status registers.\label{tab13}}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l |}
+\hline
+bit & description \\ \hline
+0 & MGT phalin cpll lock \\ \hline
+1 & RX word clock ready \\ \hline
+2 & RX frame clock ready \\ \hline
+3 & MGT link ready \\ \hline
+4 & TX reset done \\ \hline
+5 & TX FSM reset done \\ \hline
+6 & RX ready \\ \hline
+7 & RX error detected \\ \hline
+8 & RX error latched \\ \hline
+\end{tabular}
+\caption{GBT status bits\label{tab14}}
+\end{table}
+
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l | l |}
+\hline
+bit & description \\ \hline
+64+2 & GBT slow cntrl wr & WR \\ \hline
+64+3 & GBT slow cntrl rd & RD \\ \hline
+64+4 & IPbus readout fifo count & RD \\ \hline
+64+5 & IPbus readout fifo data & RD \\ \hline
+\end{tabular}
+\caption{Dedicated bus registers\label{tab15}}
+\end{table}
 
 
 \end{document}
