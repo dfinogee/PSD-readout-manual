@@ -68,7 +68,9 @@ If one channel in common trigger mask parameter cross threshold, common trigger 
 
 
 Ch\_data\_collector store waveform point in raw\_fifo by strobe signal and start waveform data (zero level) by start signal. When charge ready signal raised, charge and start data from header\_fifo stored in data\_fifo as hit packed header. This allow to upgrade charge calculation with fitting procedure and change calculation delay. In next cycle waveform points are read from raw\_fifo and (if sending wf points parameter is set on) stored as hit data in ch\_data\_fifo. After hit packet stored, ready signal raised or dropped signal in case fifo was full and hit packet was dropped. Ready and dropped signals are synchronous to threshold crossing and used for event ADC timestamp.  Signals diagramm of the component is presented on figure~\ref{fig:4}. The write size of ch\_data\_fifo should be equal to ceil(calculation\_delay / waveform\_lenght)*waveform\_lenght. The size of ch\_header\_fifo should be ceil(calculation\_delay / waveform\_lenght). Write rate for mentioned fifo is equal to read rate.
+In case data-fifo is full while charge ready signal, hit is dropped and dropped-hits counter increased by 1. Dropped-hits counter is avaliable in channel status and reset after each register reading.
 
+Readout-rate component allow to measure hit rate per channel. Waveform-start signals counted with 16bit counter and 70Hz rate. Each 70 Hz cycle, count is stored in 128 shift register. Rate-mean register store the summ of values stored in shift register. Two modes: low-rate and normal are available for rate reading. In normal mode for 16 bit status register available rate-mean[22 downto 7] and result is rate/70Hz. In low-rate mode (channel-low-rate-count bit) rate-mean[15 downto 0] avaliable for status register and result is rate/70*128Hz.
 
 \begin{figure}[H]
 	\centering 
@@ -224,6 +226,7 @@ bit & description \\ \hline
 1 & ms gen standalone \\ \hline
 2 & readout fsm reset \\ \hline
 3 & errors reset \\ \hline
+4 & channel low rate count \\ \hline
 \end{tabular}
 \caption{Control bits\label{tab6}}
 \end{table}
@@ -256,6 +259,7 @@ addr & 31 .. 30 & 29 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 14 & 13 .. 1
 4 & \multicolumn{5}{c|}{RX err detect cnt} & \multicolumn{5}{c|}{I2C HV bus}\\ \hline
 5 & \multicolumn{8}{c|}{0x0} & \multicolumn{2}{c|}{temp} \\ \hline
 6 & \multicolumn{5}{c|}{sel. channel baseline rms} & \multicolumn{5}{c|}{sel. channel baseline}\\ \hline
+7 & \multicolumn{5}{c|}{sel. channel dropped hits} & \multicolumn{5}{c|}{sel. channel hit rate}\\ \hline
 \end{tabular}
 \caption{ADC channels threshold control.\label{tab8}}
 \end{table}
