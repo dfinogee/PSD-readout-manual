@@ -172,9 +172,69 @@ word & 79 .. 64 & 63 .. 48 & 47 .. 32 & 31 .. 16 & 15 .. 0 \\ \hline
 
 
 \section{ADC control}
-\subsection{Control registers}
+\subsection{ADC control units}
+Status and Control of ADC and EvB are 64 arrays each of 32 bit words.
+ADC control system include 4 firmware units: gbt-control-sendet, gbt-control-reader, gbt-status-sender, gbt-status-reader.
 
-To avoid configuration corruption while GBT link fail, register 31 is reserved for lock key word. Control registers are available for writing if register 31 is 0xafafafaf. Register 31 is always open for writing.
+gbt-control-sender send control packet (129 X 16bit) via gbt to ADC by start command initiated by software. Packet could be send at any time and is not in conflict with microslice flow to ADC. gbt-control-reader receive control packet, and update registers array with received strobe.
+
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l |}
+\hline
+word & value \\ \hline
+0 & 0xABBA \\ \hline
+1 & control(0)(15 .. 0) \\ \hline
+2 & control(0)(31 .. 16) \\ \hline
+3 & control(1)(15 .. 0) \\ \hline
+4 & control(1)(31 .. 16) \\ \hline
+\multicolumn{2}{|c|}{....} \\ \hline
+128 & control(63)(15 .. 0) \\ \hline
+128 & control(63)(31 .. 16) \\ \hline
+\end{tabular}
+\caption{Control packet to ADC.\label{tab4}}
+\end{table}
+
+
+gbt-status-sender send status or control registers from ADC (packet 32 X 80bit). The transaction is initiated periodically, also control registers is sent back after each new configuration. Status/control packet is prioritized to data flow, and gbt-data-fifo is not readed while transaction. To separate data flow status word starts with 0xE, control with 0xF. 
+
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l | l | l | l |}
+\hline
+ bits & 79 .. 76 & 75 .. 64 & 63 .. 32 & 31 .. 0 \\ \hline
+word & code & addr & reg1 & reg0 \\ \hline
+0 & E & 0 & status(1) & status(0) \\ \hline
+1 & E & 2 & status(3) & status(2) \\ \hline
+\multicolumn{5}{|c|}{....} \\ \hline
+31 & E & 30 & status(31) & status(30) \\ \hline
+\end{tabular}
+\caption{Status packet from ADC.\label{tab4}}
+\end{table}
+
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l | l | l | l |}
+\hline
+ bits & 79 .. 76 & 75 .. 64 & 63 .. 32 & 31 .. 0 \\ \hline
+word & code & addr & reg1 & reg0 \\ \hline
+0 & F & 0 & control(1) & control(0) \\ \hline
+1 & F & 2 & control(3) & control(2) \\ \hline
+\multicolumn{5}{|c|}{....} \\ \hline
+31 & F & 30 & control(31) & control(30) \\ \hline
+\end{tabular}
+\caption{Control packet from ADC.\label{tab4}}
+\end{table}
+
+gbt-status-reader read each gbt word stars with 0xE or 0xF and update control or status registers. Two counters indicate the time passed from last update. Read back control register is compared with actual one. 
+
+
+
+
+\subsection{ADC Control registers}
 
 \begin{table}[H]
 \centering
@@ -213,6 +273,8 @@ addr & 31 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 12 & 11 .. 8 & 7 .. 4 &
 20 & \multicolumn{8}{c|}{microslice period} \\ \hline
 21 & \multicolumn{8}{c|}{common trigger mask *} \\ \hline
 22 & \multicolumn{8}{c|}{common trigger output **} \\ \hline
+23 & \multicolumn{8}{c|}{trigger pulser rate (0x0 = off)} \\ \hline
+24 & \multicolumn{4}{c|}{status send rate (0x0 = off)}& \multicolumn{4}{c|}{control send rate (0x0 = off)} \\ \hline
 \end{tabular}
 \caption{ADC readout control. [* channels set generates common trigger] [** triggered channels set]\label{tab5}}
 \end{table}
@@ -227,6 +289,7 @@ bit & description \\ \hline
 2 & readout fsm reset \\ \hline
 3 & errors reset \\ \hline
 4 & channel low rate count \\ \hline
+5 & reset channels drop counter \\ \hline
 \end{tabular}
 \caption{Control bits\label{tab6}}
 \end{table}
@@ -243,7 +306,7 @@ addr & 31 .. 18 & 17 .. 17 & 16 .. 16 & 15 .. 8 & 7 .. 7 & 6 .. 0 \\ \hline
 \end{table}
 
 
-\subsection{Status registers}
+\subsection{ADC Status registers}
 
 Status registers map is presented on table \ref{tab8}. 
 
@@ -281,10 +344,93 @@ Status registers comments:
 \item RX err frclk cnt - counter@RXclk of state when frame clock is not ready.
 
 \item RX wrclk err cnt - counter@RXclk of state when word clock is not ready.
-
-
 \end{itemize}
 
+\subsection{EvB Control}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l |}
+\hline
+range & description \\ \hline
+0 .. 63 & EvB control \\ \hline
+64 .. 127 & ADC control \\ \hline
+128 .. 191 & EvB status \\ \hline
+192 .. 255 & ADC status \\ \hline
+256 & EvB GBT readout \\ \hline
+257 & EvB readout fifo count \\ \hline
+\end{tabular}
+\caption{EvB registers mapping\label{tab6}}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l | l | l | l | l | l | l | l |}
+\hline
+addr & 31 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 12 & 11 .. 8 & 7 .. 4 & 3 .. 0 \\ \hline
+0 & \multicolumn{6}{c|}{0x0}  & \multicolumn{2}{c|}{control word} \\ \hline
+1 & \multicolumn{8}{c|}{microslice gen counter@25ns}  \\ \hline
+2 & \multicolumn{8}{c|}{microslice period}  \\ \hline
+\end{tabular}
+\caption{Evaluation board control registers.\label{tab11}}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l |}
+\hline
+bit & description \\ \hline
+0 & data processing reset \\ \hline
+1 & error reset \\ \hline
+\end{tabular}
+\caption{Control word bits\label{tab12}}
+\end{table}
+
+
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l | l | l | l | l | l | l | l |}
+\hline
+addr & 31 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 12 & 11 .. 8 & 7 .. 4 & 3 .. 0 \\ \hline
+0 & \multicolumn{3}{c|}{0x0} & control status  & \multicolumn{4}{c|}{GBT status} \\ \hline
+1 & \multicolumn{4}{c|}{sorter ms dropped}  & \multicolumn{4}{c|}{sorter hit dropped} \\ \hline
+2 & \multicolumn{4}{c|}{gbt reader link 1 ms dropped}  & \multicolumn{4}{c|}{gbt reader link 0 ms dropped} \\ \hline
+3 & \multicolumn{4}{c|}{status age}& \multicolumn{4}{c|}{control age} \\ \hline
+
+\end{tabular}
+\caption{Evaluation board status registers.\label{tab13}}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l |}
+\hline
+bit & description \\ \hline
+0 & MGT phalin cpll lock \\ \hline
+1 & RX word clock ready \\ \hline
+2 & RX frame clock ready \\ \hline
+3 & MGT link ready \\ \hline
+4 & TX reset done \\ \hline
+5 & TX FSM reset done \\ \hline
+6 & RX ready \\ \hline
+7 & RX error detected \\ \hline
+8 & RX error latched \\ \hline
+\end{tabular}
+\caption{GBT status bits\label{tab14}}
+\end{table}
+
+
+\begin{table}[H]
+\centering
+\begin{tabular}{| l | l | l |}
+\hline
+bit & addr & description \\ \hline
+0 & 16 & control readback correct \\ \hline
+
+\end{tabular}
+\caption{control status bits\label{tab14}}
+\end{table}
 
 \section{CRI modules}
 
@@ -377,74 +523,6 @@ IPbus-face-component read data stream from gbt-data-sorter and resize data to wi
 
 Kintex Evaluation board include CRI data processing module and use IPbus-face module for readout. Real GBT link is connected to 0 link, other links can receive data from emulators. Simple microslice generator is used to provide ms to gbt-data-sorter and to ADC board. Tables \ref{tab11} and \ref{tab13} present control and status registers map. GBT slow control and IPbus readout ported via dedicated addresses prioritized to status and control registers (could replace status and control registers), shown in table \ref{tab15} 
 
-
-
-\begin{table}[H]
-\centering
-\begin{tabular}{| l | l | l | l | l | l | l | l | l |}
-\hline
-addr & 31 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 12 & 11 .. 8 & 7 .. 4 & 3 .. 0 \\ \hline
-0 & \multicolumn{6}{c|}{0x0}  & \multicolumn{2}{c|}{control word} \\ \hline
-1 & \multicolumn{8}{c|}{microslice gen counter@25ns}  \\ \hline
-2 & \multicolumn{8}{c|}{microslice period}  \\ \hline
-\end{tabular}
-\caption{Evaluation board control registers.\label{tab11}}
-\end{table}
-
-\begin{table}[H]
-\centering
-\begin{tabular}{| l | l |}
-\hline
-bit & description \\ \hline
-0 & data processing reset \\ \hline
-
-\end{tabular}
-\caption{Control word bits\label{tab12}}
-\end{table}
-
-
-\begin{table}[H]
-\centering
-\begin{tabular}{| l | l | l | l | l | l | l | l | l |}
-\hline
-addr & 31 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 12 & 11 .. 8 & 7 .. 4 & 3 .. 0 \\ \hline
-0 & \multicolumn{4}{c|}{0x0}  & \multicolumn{4}{c|}{GBT status} \\ \hline
-
-\end{tabular}
-\caption{Evaluation board status registers.\label{tab13}}
-\end{table}
-
-\begin{table}[H]
-\centering
-\begin{tabular}{| l | l |}
-\hline
-bit & description \\ \hline
-0 & MGT phalin cpll lock \\ \hline
-1 & RX word clock ready \\ \hline
-2 & RX frame clock ready \\ \hline
-3 & MGT link ready \\ \hline
-4 & TX reset done \\ \hline
-5 & TX FSM reset done \\ \hline
-6 & RX ready \\ \hline
-7 & RX error detected \\ \hline
-8 & RX error latched \\ \hline
-\end{tabular}
-\caption{GBT status bits\label{tab14}}
-\end{table}
-
-
-\begin{table}[H]
-\centering
-\begin{tabular}{| l | l | l |}
-\hline
-bit & description \\ \hline
-64+2 & GBT slow cntrl wr & WR \\ \hline
-64+3 & GBT slow cntrl rd & RD \\ \hline
-64+4 & IPbus readout fifo count & RD \\ \hline
-64+5 & IPbus readout fifo data & RD \\ \hline
-\end{tabular}
-\caption{Dedicated bus registers\label{tab15}}
-\end{table}
 
 
 \end{document}
