@@ -21,7 +21,7 @@
 
 \maketitle
 
-Actual version of the document is avaliable at github:
+Actual version of the document is available at github:
 \newline
 \url{https://github.com/dfinogee/PSD-readout-manual/raw/main/PSD_readout_manual.pdf}
 
@@ -44,7 +44,7 @@ PSD\_data\_readout component receive data from all ADCs, process waveform and ou
 
 
 \subsection{Component channels\_calc}
-Channel\_calc component scheme is presented on figure~\ref{fig:2}. ADC data inverted for negative signals, zero level and RMS are calculated and avaliable from slow control.
+Channel\_calc component scheme is presented on figure~\ref{fig:2}. ADC data inverted for negative signals, zero level and RMS are calculated and available from slow control.
 
 
 \begin{figure}[H]
@@ -54,7 +54,7 @@ Channel\_calc component scheme is presented on figure~\ref{fig:2}. ADC data inve
 \end{figure}
 
 
-Strobe\_generator component forms waveform gate, start and stop signals by threshold crossing taking waveform length and offset parameters. Waveform data that are available from the start (zero level) are latched while strobe. Signal diagram of the component is presented on figure~\ref{fig:3} To reduce the probability of being triggered by a noise event, three neighboring points are compared with threshold. Central point is compared with the treshold value and two side points with half of threshold value.
+Strobe\_generator component forms waveform gate, start and stop signals by threshold crossing taking waveform length and offset parameters. Waveform data that are available from the start (zero level) are latched while strobe. Signal diagram of the component is presented on figure~\ref{fig:3} To reduce the probability of being triggered by a noise event, three neighboring points are compared with threshold. Central point is compared with the threshold value and two side points with half of threshold value.
 
 Waveform offset parameter determine waveform position in gate, if it is 0, first point in waveform strobe is  the point above threshold (the third point compared to half of threshold value). Maximum offset value is 13. Latched baseline level is value before point above threshold.
 
@@ -67,10 +67,10 @@ If one channel in common trigger mask parameter cross threshold, common trigger 
 \end{figure}
 
 
-Ch\_data\_collector store waveform point in raw\_fifo by strobe signal and start waveform data (zero level) by start signal. When charge ready signal raised, charge and start data from header\_fifo stored in data\_fifo as hit packed header. This allow to upgrade charge calculation with fitting procedure and change calculation delay. In next cycle waveform points are read from raw\_fifo and (if sending wf points parameter is set on) stored as hit data in ch\_data\_fifo. After hit packet stored, ready signal raised or dropped signal in case fifo was full and hit packet was dropped. Ready and dropped signals are synchronous to threshold crossing and used for event ADC timestamp.  Signals diagramm of the component is presented on figure~\ref{fig:4}. The write size of ch\_data\_fifo should be equal to ceil(calculation\_delay / waveform\_lenght)*waveform\_lenght. The size of ch\_header\_fifo should be ceil(calculation\_delay / waveform\_lenght). Write rate for mentioned fifo is equal to read rate.
-In case data-fifo is full while charge ready signal, hit is dropped and dropped-hits counter increased by 1. Dropped-hits counter is avaliable in channel status and reset after each register reading.
+Ch\_data\_collector store waveform point in raw\_fifo by strobe signal and start waveform data (zero level) by start signal. When charge ready signal raised, charge and start data from header\_fifo stored in data\_fifo as hit packed header. This allow to upgrade charge calculation with fitting procedure and change calculation delay. In next cycle waveform points are read from raw\_fifo and (if sending wf points parameter is set on) stored as hit data in ch\_data\_fifo. After hit packet stored, ready signal raised or dropped signal in case fifo was full and hit packet was dropped. Ready and dropped signals are synchronous to threshold crossing and used for event ADC timestamp.  Signals diagram of the component is presented on figure~\ref{fig:4}. The write size of ch\_data\_fifo should be equal to ceil(calculation\_delay / waveform\_lenght)*waveform\_lenght. The size of ch\_header\_fifo should be ceil(calculation\_delay / waveform\_lenght). Write rate for mentioned fifo is equal to read rate.
+In case data-fifo is full while charge ready signal, hit is dropped and dropped-hits counter increased by 1. Dropped-hits counter is available in channel status and reset after each register reading.
 
-Readout-rate component allow to measure hit rate per channel. Waveform-start signals counted with 16bit counter and 70Hz rate. Each 70 Hz cycle, count is stored in 128 shift register. Rate-mean register store the summ of values stored in shift register. Two modes: low-rate and normal are available for rate reading. In normal mode for 16 bit status register available rate-mean[22 downto 7] and result is rate/70Hz. In low-rate mode (channel-low-rate-count bit) rate-mean[15 downto 0] avaliable for status register and result is rate/70*128Hz.
+Readout-rate component allow to measure hit rate per channel. Waveform-start signals counted with 16bit counter and 70Hz rate. Each 70 Hz cycle, count is stored in 128 shift register. Rate-mean register store the summ of values stored in shift register. Two modes: low-rate and normal are available for rate reading. In normal mode for 16 bit status register available rate-mean[22 downto 7] and result is rate/70Hz. In low-rate mode (channel-low-rate-count bit) rate-mean[15 downto 0] available for status register and result is rate/70*128Hz.
 
 \begin{figure}[H]
 	\centering 
@@ -88,7 +88,7 @@ Signals could be processed one after another without dead time. If next adc poin
 \end{figure}
 
 \subsection{Component common\_data\_collector}
-Each channel generate single strobe with fixed latency to threshold crossing indicating waveform measurement. 32 bit strobe word is stored to data\_wf\_calc\_fifo with mc index and ADC timestamp. FSM read stored strobes and collect data from fired channels storing outputs to common\_data\_fifo, each event header word with timing and data size info stored in common\_header\_fifo. Shematic represented on figure ~\ref{fig:3}.
+Each channel generate single strobe with fixed latency to threshold crossing indicating waveform measurement. 32 bit strobe word is stored to data\_wf\_calc\_fifo with mc index and ADC timestamp. FSM read stored strobes and collect data from fired channels storing outputs to common\_data\_fifo, each event header word with timing and data size info stored in common\_header\_fifo. Schematic represented on figure ~\ref{fig:3}.
 
 \begin{figure}[H]
 	\centering 
@@ -174,7 +174,7 @@ word & 79 .. 64 & 63 .. 48 & 47 .. 32 & 31 .. 16 & 15 .. 0 \\ \hline
 \section{ADC control}
 \subsection{ADC control units}
 Status and Control of ADC and EvB are 64 arrays each of 32 bit words.
-ADC control system include 4 firmware units: gbt-control-sendet, gbt-control-reader, gbt-status-sender, gbt-status-reader.
+ADC control system include 4 firmware units: gbt-control-sender, gbt-control-reader, gbt-status-sender, gbt-status-reader.
 
 gbt-control-sender send control packet (129 X 16bit) via gbt to ADC by start command initiated by software. Packet could be send at any time and is not in conflict with microslice flow to ADC. gbt-control-reader receive control packet, and update registers array with received strobe.
 
@@ -190,7 +190,7 @@ word & value \\ \hline
 3 & control(1)(15 .. 0) \\ \hline
 4 & control(1)(31 .. 16) \\ \hline
 \multicolumn{2}{|c|}{....} \\ \hline
-128 & control(63)(15 .. 0) \\ \hline
+127 & control(63)(15 .. 0) \\ \hline
 128 & control(63)(31 .. 16) \\ \hline
 \end{tabular}
 \caption{Control packet to ADC.\label{tab4}}
@@ -273,7 +273,7 @@ addr & 31 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 12 & 11 .. 8 & 7 .. 4 &
 20 & \multicolumn{8}{c|}{microslice period} \\ \hline
 21 & \multicolumn{8}{c|}{common trigger mask *} \\ \hline
 22 & \multicolumn{8}{c|}{common trigger output **} \\ \hline
-23 & \multicolumn{8}{c|}{trigger pulser rate (0x0 = off)} \\ \hline
+23 & \multicolumn{8}{c|}{trigger pulser rate [count @ ADC clock] (0x0 = off)} \\ \hline
 24 & \multicolumn{4}{c|}{status send rate (0x0 = off)}& \multicolumn{4}{c|}{control send rate (0x0 = off)} \\ \hline
 \end{tabular}
 \caption{ADC readout control. [* channels set generates common trigger] [** triggered channels set]\label{tab5}}
@@ -297,10 +297,10 @@ bit & description \\ \hline
 
 \begin{table}[H]
 \centering
-\begin{tabular}{| l | l | l | l | l | l | l | l | l |}
+\begin{tabular}{| l | l | l | l | l | l | l |}
 \hline
-addr & 31 .. 18 & 17 .. 17 & 16 .. 16 & 15 .. 8 & 7 .. 7 & 6 .. 0 \\ \hline
-18 & 0x0 & WR & ENA & DATA & 0x0 & ADDR \\ \hline
+addr & 31 .. 25 & 24 .. 24 & 23 .. 23 & 22 .. 16 & 15 .. 8 & 7 .. 0 \\ \hline
+18 & 0x0 & start & WR & i2c dev addr & mem addr & data \\ \hline
 \end{tabular}
 \caption{HV control via I2C.\label{tab7}}
 \end{table}
@@ -490,7 +490,7 @@ event header & 0xB & ADC idx** & \multicolumn{2}{c|}{0x0} & n hits & packet len 
 
 
 \subsection{ADC GBT reader}
-ADC GBT reader reads GBT packets from one GBT link and store its to fifo event\_fifo. With last packet data word header word pushed to separate fifo header\_ fifo with packet lenght and microslice index. Event packet skipped when one of fifos is full. After reset fsm starts wait microslice header. Packets reads according to size in header and fsm wait next packet or microslice header. If next word after packet is neither ms or packet header, fsm starts wait ms header. Data drop info state is not implemented yet. Signal diagram is presented on figure \ref{fig:11}. 
+ADC GBT reader reads GBT packets from one GBT link and store its to fifo event\_fifo. With last packet data word header word pushed to separate fifo header\_ fifo with packet length and microslice index. Event packet skipped when one of fifos is full. After reset fsm starts wait microslice header. Packets reads according to size in header and fsm wait next packet or microslice header. If next word after packet is neither ms or packet header, fsm starts wait ms header. Data drop info state is not implemented yet. Signal diagram is presented on figure \ref{fig:11}. 
 
 \begin{figure}[H]
 	\centering 
@@ -499,7 +499,7 @@ ADC GBT reader reads GBT packets from one GBT link and store its to fifo event\_
 \end{figure}
 
 \subsection{GBT Data Sorter component}
-Components header\_fifo and event\_fifo from adc-gbt-readers for all gbt links are connected to gbt-data-sorter component. Each new microslice value collected in ms-fifo. FSM switch thought all gbt links and read all one by one links with microslice less or equal to current microslice. Data for links with equal microslice to current-ms output from the sorter, for links with less microslice data is dropped. When all links have ms higher than current ms or are empty means that all data for current microslie are read. Such condition starts counter to wait data from all links. Then counter reach value 127, FSM swithced to next-ms state. Next microslice readed from fifo and header with new ms value sent to output stream. Signal diagram presented on figure \ref{fig:10} Output data represent combined GBT packets from all GBT link. All events from GBT links for one microslice follows one after another. Data for different microslices divided by microslice header with format 0xDAF0 + microslice (64bit). 
+Components header\_fifo and event\_fifo from adc-gbt-readers for all gbt links are connected to gbt-data-sorter component. Each new microslice value collected in ms-fifo. FSM switch thought all gbt links and read all one by one links with microslice less or equal to current microslice. Data for links with equal microslice to current-ms output from the sorter, for links with less microslice data is dropped. When all links have ms higher than current ms or are empty means that all data for current microslie are read. Such condition starts counter to wait data from all links. Then counter reach value 127, FSM swithced to next-ms state. Next microslice read from fifo and header with new ms value sent to output stream. Signal diagram presented on figure \ref{fig:10} Output data represent combined GBT packets from all GBT link. All events from GBT links for one microslice follows one after another. Data for different microslices divided by microslice header with format 0xDAF0 + microslice (64bit). 
 
 
 \begin{figure}[H]
