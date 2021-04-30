@@ -197,7 +197,7 @@ word & value \\ \hline
 \end{table}
 
 
-gbt-status-sender send status or control registers from ADC (packet 32 X 80bit). The transaction is initiated periodically, also control registers is sent back after each new configuration. Status/control packet is prioritized to data flow, and gbt-data-fifo is not readed while transaction. To separate data flow status word starts with 0xE, control with 0xF. 
+gbt-status-sender send status or control registers from ADC (packet 32 X 80bit). The transaction is initiated periodically, also control registers is sent back after each new configuration. Status sent back after I2C transaction finished or monitor channel changed. Also control word 0xABBB and 0xABBC initiate control/status packet from ADC corespondent. Status/control packet is prioritized to data flow, and gbt-data-fifo is not readed while transaction. To separate data flow status word starts with 0xE, control with 0xF. 
 
 
 \begin{table}[H]
@@ -271,12 +271,14 @@ addr & 31 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 12 & 11 .. 8 & 7 .. 4 &
 18 & \multicolumn{8}{c|}{I2C HV bus} \\ \hline
 19 & \multicolumn{8}{c|}{microslice gen counter@25ns} \\ \hline
 20 & \multicolumn{8}{c|}{microslice period} \\ \hline
-21 & \multicolumn{8}{c|}{common trigger mask *} \\ \hline
-22 & \multicolumn{8}{c|}{common trigger output **} \\ \hline
+21 & \multicolumn{8}{c|}{common trigger OR mask} \\ \hline
+22 & \multicolumn{8}{c|}{common trigger output} \\ \hline
 23 & \multicolumn{8}{c|}{trigger pulser rate [count @ ADC clock] (0x0 = off)} \\ \hline
 24 & \multicolumn{4}{c|}{status send rate (0x0 = off)}& \multicolumn{4}{c|}{control send rate (0x0 = off)} \\ \hline
+25 & \multicolumn{8}{c|}{common trigger AND mask} \\
+\hline
 \end{tabular}
-\caption{ADC readout control. [* channels set generates common trigger] [** triggered channels set]\label{tab5}}
+\caption{ADC readout control.}
 \end{table}
 
 \begin{table}[H]
@@ -323,6 +325,7 @@ addr & 31 .. 30 & 29 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 14 & 13 .. 1
 5 & \multicolumn{8}{c|}{0x0} & \multicolumn{2}{c|}{temp} \\ \hline
 6 & \multicolumn{5}{c|}{sel. channel baseline rms} & \multicolumn{5}{c|}{sel. channel baseline}\\ \hline
 7 & \multicolumn{5}{c|}{sel. channel dropped hits} & \multicolumn{5}{c|}{sel. channel hit rate}\\ \hline
+8 & \multicolumn{5}{c|}{GBT event dropped} & \multicolumn{5}{c|}{GBT fifo count}\\ \hline
 \end{tabular}
 \caption{ADC channels threshold control.\label{tab8}}
 \end{table}
