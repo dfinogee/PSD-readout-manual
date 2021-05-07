@@ -31,7 +31,19 @@ Actual version of the document is available at github:
 
 \newpage
 
-\section{ADC data processing}
+\section{PSD ADC board}
+
+
+
+
+
+
+
+\subsection{ADC clock scheme}\label{adc-clock-desc}
+
+
+
+
 PSD\_data\_readout component receive data from all ADCs, process waveform and output data in GBT packets. Schematic of component is presented on fig.~\ref{fig:1}.
 
 \begin{figure}[H]
@@ -39,6 +51,10 @@ PSD\_data\_readout component receive data from all ADCs, process waveform and ou
 	\includegraphics[width=0.8\textwidth]{ADC_readout.png}
 	\caption{\label{fig:1} ADC data readout scheme}
 \end{figure}
+
+
+
+
 
 
 
@@ -87,6 +103,19 @@ Signals could be processed one after another without dead time. If next adc poin
 	\caption{\label{fig:5} Channel data collecting signals}
 \end{figure}
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 \subsection{Component common\_data\_collector}
 Each channel generate single strobe with fixed latency to threshold crossing indicating waveform measurement. 32 bit strobe word is stored to data\_wf\_calc\_fifo with mc index and ADC timestamp. FSM read stored strobes and collect data from fired channels storing outputs to common\_data\_fifo, each event header word with timing and data size info stored in common\_header\_fifo. Schematic represented on figure ~\ref{fig:3}.
 
@@ -106,6 +135,20 @@ FSM is switched from wait to start state when data\_wf\_calc\_fifo\_isempty beca
 \end{figure}
 
 Collecting data from all channels takes two additional FSM cycle. Mean hit rate per channel in case all channels fired is SYSCKL / total channels + 2 cycle / packet length. Test beam: 80MHz / 12 / 5 = 1.3MHz. Final setup: 120 (240) / 32 / 1 = 3.5 (7) MHz.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 \subsection{Component GBT\_data\_sender}
@@ -170,13 +213,44 @@ word & 79 .. 64 & 63 .. 48 & 47 .. 32 & 31 .. 16 & 15 .. 0 \\ \hline
 \caption{hit packet data word.\label{tab3}}
 \end{table}
 
+Reserved first 8 bits in GBT data flow:
+\begin{itemize}
+\item 0x0:0x20 - hit header ch number
 
-\section{ADC control}
-\subsection{ADC control units}
-Status and Control of ADC and EvB are 64 arrays each of 32 bit words.
-ADC control system include 4 firmware units: gbt-control-sender, gbt-control-reader, gbt-status-sender, gbt-status-reader.
+\item 0x3 - hit data word (DOTO)
 
-gbt-control-sender send control packet (129 X 16bit) via gbt to ADC by start command initiated by software. Packet could be send at any time and is not in conflict with microslice flow to ADC. gbt-control-reader receive control packet, and update registers array with received strobe.
+\item 0xA - microslice header
+
+\item 0xB - event header
+
+\item 0xC - CRI FLIM iface mcs delimiter word
+
+\item 0xE - status packet word
+
+\item 0xF - control packet word
+\end{itemize}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{ADC control units}\label{adc-control}
+Status and Control of ADC are 64 arrays each of 32 bit words.
+ADC control system include 4 firmware units: gbt-control-sender, gbt-control-reader, gbt-status-sender, gbt-status-reader. ADC control and monitoring strategy is describe in sec.~\ref{cri-adc-ctrl-desc}
+
+gbt-control-sender is placed on CRI side and send control packet (129 X 16bit) via gbt to ADC. Packet could be send at any time and is not in conflict with microslice flow to ADC. gbt-control-reader receive control packet, and update registers array with raising "updated" strobe.
 
 
 \begin{table}[H]
@@ -197,8 +271,9 @@ word & value \\ \hline
 \end{table}
 
 
-gbt-status-sender send status or control registers from ADC (packet 32 X 80bit). The transaction is initiated periodically, also control registers is sent back after each new configuration. Status sent back after I2C transaction finished or monitor channel changed. Also control word 0xABBB and 0xABBC initiate control/status packet from ADC corespondent. Status/control packet is prioritized to data flow, and gbt-data-fifo is not readed while transaction. To separate data flow status word starts with 0xE, control with 0xF. 
+gbt-status-sender send status or control registers from ADC (packet 32 X 80bit).  Status/control packet is prioritized to data flow, and gbt-data-fifo is not read while transaction. Status and control words starts with 0xE and 0xF accordingly to be distinguished from data flow. 
 
+Sending of control or status packets could be initiated by CRI side with 0xABBB and 0xABBC codes in MSB of RX data.
 
 \begin{table}[H]
 \centering
@@ -229,7 +304,21 @@ word & code & addr & reg1 & reg0 \\ \hline
 \caption{Control packet from ADC.\label{tab4}}
 \end{table}
 
-gbt-status-reader read each gbt word stars with 0xE or 0xF and update control or status registers. Two counters indicate the time passed from last update. Read back control register is compared with actual one. 
+gbt-status-reader read each gbt word stars with 0xE or 0xF and update control or status registers. Two counters indicate the time passed from last update. Read back control register is compared with actual on CRI side. 
+
+
+
+
+
+
+
+\subsection{Addon I2C control}
+
+
+
+
+
+
 
 
 
@@ -308,6 +397,22 @@ addr & 31 .. 25 & 24 .. 24 & 23 .. 23 & 22 .. 16 & 15 .. 8 & 7 .. 0 \\ \hline
 \end{table}
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 \subsection{ADC Status registers}
 
 Status registers map is presented on table \ref{tab8}. 
@@ -348,6 +453,20 @@ Status registers comments:
 
 \item RX wrclk err cnt - counter@RXclk of state when word clock is not ready.
 \end{itemize}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 \subsection{EvB Control}
 
@@ -435,15 +554,130 @@ bit & addr & description \\ \hline
 \caption{control status bits\label{tab14}}
 \end{table}
 
-\section{CRI modules}
 
-\subsection{PSD CRI data sorting}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\section{CRI-PSD firmware}
+
+\subsection{ADC - CRI communication}
+
+ADC - CRI communication scheme is presented on fig.~\ref{fig:adc-cri}. 
+
+\begin{figure}[H]
+	\centering 
+	\includegraphics[width=1.0\textwidth]{CRI_PSD_spec.png}
+	\caption{\label{fig:adc-cri} ADC - CRI GBT connection}
+\end{figure}
+
+GBT-FPGA on ADC board side recover RX clock (see ~\ref{adc-clock-desc}), microslice (64 bit@40MHz each GBT word) and control packets (see ~\ref{cri-adc-ctrl-desc}). Microslice index transported to ADC clock domain (synchronous to RX clock) and each ADC cycle in microslice numerated with adc time index. Measured hits labeled with microslice + adc time indexes and sent to CRI via GBT TX. Control and monitor of data taking, MPPC HV adjustment and MPPC board temperature control is available via GBT control packets.
+
+TODO: update with 2 FPGAs
+
+
+
+
+\subsection{CRI - ADC control strategy}\label{cri-adc-ctrl-desc}
+Implementation details are described in sec.~\ref{adc-control}
+
+adc-control-sender unit placed in CRI receive mapped adc control registers (64X32bit) from AGWB "psd-adc". By software command all registers could be sent to ADC. After each transaction of control packet ADC send back control register. adc-status-reader unit read control and status packet from ADC on CRI side. Status packets received from ADC updates status on AGWB "psd-adc". Received control packets compared with actual control registers from "psd-adc" and "match" signal indicate correctness of ADC configuration.
+ADC reset cycle (FSM or errors) must be done in 4 writes (here and below several fields writes counted as single command):
+
+\begin{itemize}
+\item[1] write 0x1 to reset register
+\item[2] trigger sending of control packet
+\item[3] write 0x0 to reset register
+\item[4] trigger sending of control packet
+\end{itemize}
+
+Control and status packets could be sent periodically, that allow only read AGWB status registers for ADC monitoring. Also control and status packets could be requested by CRI side, in that case monitoring can be done with one write command (trigger status request) and one read command of status. 
+
+To save registers space, channel status (base level, RMS, hits dropped, hits rate, 64 bits in total) presents in status register map only for one channel. Number of monitored channel is controlled with field "mon-ch-sel". After each time the field is changed on ADC side, status packet sent to CRI automatically. That allow to monitor channel status in 3 command:
+
+\begin{itemize}
+\item[1] write numger of monitored channel to register
+\item[2] trigger sending of control packet
+\item[3] read status fields of channel status
+\end{itemize}
+
+Also status packets sent to CRI automatically after each I2C operation that allow to configure addon register in 5 commands:
+
+\begin{itemize}
+\item[1] write data for I2C transation (start = 0)
+\item[2] trigger sending of control packet
+\item[3] write start to 1
+\item[4] trigger sending of control packet
+\item[5] read I2C status
+\end{itemize}
+
+
+TODO: In future some of operation could be implemented on firmware level:
+ 
+\begin{itemize}
+\item Reset cycle could be automated on ADC and CRI sides for single write AGWB command
+\item ADC control packet could be sent automatically after changing of registers (with timeout) and ADC configuration mismatch while writing new control values could be processed on CRI side. That will allow just write new configuration on software level.
+\item Errors could be reset automatically after sending from ADC and stored and alarmed on CRI side
+\item Channel status map could be received automatically with low rate update, representing full channels status table in AGWB
+\item I2C operation could be automated with full addon control and status registers map in AGWB
+
+Also, to do not reduce data rate with status registers, packets could be sent via 4 bits of slow-control bus.
+
+\end{itemize}
+
+
+
+
+
+
+
+
+
+\subsection{PSD CRI data processing}
+
+
 
 \begin{figure}[H]
 	\centering 
 	\includegraphics[width=1.0\textwidth]{CRI_data_sort.png}
-	\caption{\label{fig:11} PSD data processing in CRI}
+	\caption{\label{fig:cri-data-sort} PSD data processing in CRI}
 \end{figure}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 \subsection{ADC GBT emulator}
@@ -492,6 +726,17 @@ event header & 0xB & ADC idx** & \multicolumn{2}{c|}{0x0} & n hits & packet len 
 \end{table}
 
 
+
+
+
+
+
+
+
+
+
+
+
 \subsection{ADC GBT reader}
 ADC GBT reader reads GBT packets from one GBT link and store its to fifo event\_fifo. With last packet data word header word pushed to separate fifo header\_ fifo with packet length and microslice index. Event packet skipped when one of fifos is full. After reset fsm starts wait microslice header. Packets reads according to size in header and fsm wait next packet or microslice header. If next word after packet is neither ms or packet header, fsm starts wait ms header. Data drop info state is not implemented yet. Signal diagram is presented on figure \ref{fig:11}. 
 
@@ -500,6 +745,20 @@ ADC GBT reader reads GBT packets from one GBT link and store its to fifo event\_
 	\includegraphics[width=1.0\textwidth]{ADC_GBT_reader_wave.png}
 	\caption{\label{fig:11} ADC GBT packets reader}
 \end{figure}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 \subsection{GBT Data Sorter component}
 Components header\_fifo and event\_fifo from adc-gbt-readers for all gbt links are connected to gbt-data-sorter component. Each new microslice value collected in ms-fifo. FSM switch thought all gbt links and read all one by one links with microslice less or equal to current microslice. Data for links with equal microslice to current-ms output from the sorter, for links with less microslice data is dropped. When all links have ms higher than current ms or are empty means that all data for current microslie are read. Such condition starts counter to wait data from all links. Then counter reach value 127, FSM swithced to next-ms state. Next microslice read from fifo and header with new ms value sent to output stream. Signal diagram presented on figure \ref{fig:10} Output data represent combined GBT packets from all GBT link. All events from GBT links for one microslice follows one after another. Data for different microslices divided by microslice header with format 0xDAF0 + microslice (64bit). 
@@ -512,7 +771,21 @@ Components header\_fifo and event\_fifo from adc-gbt-readers for all gbt links a
 \end{figure}
 
 
-\subsection{IPbus face component}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Calibration readout}
 IPbus-face-component read data stream from gbt-data-sorter and resize data to width 32 bit. Data stream from gbt-data-sorter stored in fifo-ipbus-face with 80bit write width and 160 read width. Output 160bit word divided in 5 32bit words. Each IPbus read cycle counter 0..4 increased by one, fifo-ipbus-face readed when counter equal 4 and ipbus-read signal is up. While reading empty fifo-ipbus-face all bits are '1'. Signals diagram is presented on figure \ref{fig:11}.
 
 \begin{figure}[H]
@@ -522,10 +795,36 @@ IPbus-face-component read data stream from gbt-data-sorter and resize data to wi
 \end{figure}
 
 
-\subsection{Evaluation Board for readout}
 
-Kintex Evaluation board include CRI data processing module and use IPbus-face module for readout. Real GBT link is connected to 0 link, other links can receive data from emulators. Simple microslice generator is used to provide ms to gbt-data-sorter and to ADC board. Tables \ref{tab11} and \ref{tab13} present control and status registers map. GBT slow control and IPbus readout ported via dedicated addresses prioritized to status and control registers (could replace status and control registers), shown in table \ref{tab15} 
 
+
+
+
+
+
+
+
+\subsection{Raw GBT readout}
+
+
+
+
+\subsection{PSD FLIM interface}
+
+
+
+
+
+\subsection{PSD CRI operation}
+
+
+
+
+
+
+
+
+\subsection{PSD CRI FIFOs usage}
 
 
 \end{document}
