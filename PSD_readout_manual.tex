@@ -564,6 +564,21 @@ After all links are ready for next mcs, FSM swithced to next-mcs state. Next mcs
 TODO: pucture actual signal diagram
 
 
+
+% ###########################################
+\subsection{Raw GBT readout}\label{sec:gbt-rd}
+raw-gbt-readout is based on 96 to 24 asymmetric synchronous fifo. Each non-zero gbt word increase 16 bit counter and force fifo wren signal. fifo input is 16 bit counter concatenated with 80bit gbt word.
+
+raw-gbt-readout control:
+\begin{itemize}
+\item gbtlink\_sel - MUX gbt link in psd-device
+\item drop\_crtl\_words - filter gbt words with keys MSB 0xE and 0xF if is on
+\item reset\_fifo force fifo reset. important AGWB trigger signal generate 1 cycle signal that is not sufficient for fifo ip-core reset (at least 5 needs). This is not solved, fifo could not reset randomly. Will be fixed if will be need.
+\item rawgbt\_fifo\_cnt - fifo occupancy counter
+\item rawgbt\_fifo\_cntn - output data
+\end{itemize}
+
+
 % ###########################################
 \subsection{Calibration readout}\label{sec:data-rd}
 IPbus-face-component read data stream from gbt-data-sorter and resize data to width 32 bit. Data stream from gbt-data-sorter stored in fifo-ipbus-face with 80bit write width and 160 read width. Output 160bit word divided in 5 32bit words. Each IPbus read cycle counter 0..4 increased by one, fifo-ipbus-face readed when counter equal 4 and ipbus-read signal is up. While reading empty fifo-ipbus-face all bits are '1'. Signals diagram is presented on figure \ref{fig:11}.
@@ -573,11 +588,6 @@ IPbus-face-component read data stream from gbt-data-sorter and resize data to wi
 	\includegraphics[width=1.0\textwidth]{ipbus-face-waves.png}
 	\caption{\label{fig:11} IPbus-face signals diagram }
 \end{figure}
-
-
-
-% ###########################################
-\subsection{Raw GBT readout}\label{sec:gbt-rd}
 
 
 
@@ -597,7 +607,7 @@ IPbus-face-component read data stream from gbt-data-sorter and resize data to wi
 \newpage
 \part{PSD evaluation board}
 
-\subsection{EvB control reg}
+\section{EvB control reg}
 \begin{table}[H]
 \centering
 \begin{tabular}{| l | l |}
