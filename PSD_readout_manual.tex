@@ -480,24 +480,30 @@ Also, to do not reduce data rate with status registers, packets could be sent vi
 
 Figure ~\ref{fig:cri-data-process} present PSD data processing flow. Each ADC board is connected to psd-device with 2 GBT links. There are 4 psd-devices per SLR, 16 GBT links, 8 psd-devices, 2 SLRs in total. Each gbt link is connected to ADC-control, adc-gbt-emu and data-reader units. adc-gbt-emu mute gbt link and emulate adc gbt packets for readout tests purposes (see sec.~\ref{sec:gbt-emu}). adc-control translate adc control and status registers to AGWB (see sec.~\ref{sec:cri-adc-ctrl}). data-reader unit read adc data packets, drop corrupted data and provide each packet with microslice header in separate fifo (see sec.~\ref{sec:data-reader}). Also adc-reader can mute any gbt link. data-sorter unit (see sec.~\ref{sec:data-sorter}) reads data and header buffers from data-reader and sort data by microslice intervals. data-sorter throttle data flow in case FLIM interface is not ready to data transport. While correct operation only data-sorter should throttle data, all other units are able transport data at full 2 gbt links load. Two slow readout units are available for calibration and test: raw-gbt-readout (see sec.~\ref{sec:gbt-rd}) and data-readout (see sec.~\ref{sec:data-rd}). raw-gbt-readout allow to take data as they received from adc board including control packets. It was implemented as one of the first units of PSD-CRI, now it is rudimentary and can be used for debug. data-readout transport sorted and throttled data for tests and calibration purposes.
 
+TODO: data throttling description
+
+
+
 % ###########################################
 \subsection{ADC GBT emulator}\label{sec:gbt-emu}
 adc-gbt-emu generates adc data packets with variable event and hit load in frequency range 1/107Hz ... 20MHz.
-ADC GBT emulator generate GBT ADC packets filling hit packages with continuous hit counter. Parameters are:
+Hit header contains microslice index and hit data contains continuous hit counter. adc-gbt-emu is inserted before data-reader and mute gbt link if it is on.
 
+adc-gbt-emu control:
 \begin{itemize}
-\item ms\_index - current microslice index @GBTclk to generate ms headers.
-\item  event\_rate is number of GBT clock cycles between packets (from start to start). If previous packet was not sent, and is time to generate new one, new one skipped.
-\item nch\_in\_even - number of hits per event 1 ... 32. Emulate fired channels.
-\item hit\_packet\_len - number of hit packet words, including hit header 1 ... 5.
+\item turn\_on - mute input gbt link and output generated data if is on.
+\item adc\_id - adc board index placed in event header
+\item event\_rate is number of GBT clock cycles between packets (from start to start of packet). If previous packet was not sent, and is time to generate new one, new one is skipped.
+\item event\_len - number of hits per event 1 ... 255. Emulate fired channels.
+\item hit\_len - number of hit words, including hit header 1 ... 255. Emulate waveform data
 \end{itemize}
 
-Emulator FSM is based on three counters, signals diagram is presented on figure \ref{fig:9}; generated data format is presented on figure \ref{tab8}.
+Emulator FSM is based on three counters, simulation signals diagram is presented on figure \ref{fig:gbt-emu-sg}; generated data format is presented on figure \ref{tab:gbt-emu-format}.
 
 \begin{figure}[H]
 	\centering 
 	\includegraphics[width=1.0\textwidth]{ADC_GBT_emu_waves.png}
-	\caption{\label{fig:9} ADC GBT emulator signals}
+	\caption{\label{fig:gbt-emu-sg} ADC GBT emulator signals}
 \end{figure}
 
 \begin{table}[H]
@@ -518,7 +524,7 @@ event header & 0xB & ADC idx** & \multicolumn{2}{c|}{0x0} & n hits & packet len 
   & \multicolumn{7}{c|}{ ... } \\ \hline
 
 \end{tabular}
-\caption{GBT data format. [* number of GBT words in event packet: event header + all hit packets] [** ADC board index] [*** total words in hit packet, including hit header]\label{tab10}}
+\caption{GBT data format. [* number of GBT words in event packet: event header + all hit packets] [** ADC board index] [*** total words in hit packet, including hit header]\label{tab:gbt-emu-format}}
 \end{table}
 
 
