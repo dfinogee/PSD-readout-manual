@@ -487,18 +487,18 @@ TODO: data throttling description
 % ###########################################
 \subsection{ADC GBT emulator}\label{sec:gbt-emu}
 adc-gbt-emu generates adc data packets with variable event and hit load in frequency range 1/107Hz ... 20MHz.
-Hit header contains microslice index and hit data contains continuous hit counter. adc-gbt-emu is inserted before data-reader and mute gbt link if it is on.
+Hit header contains microslice index and hit data continuous hit counter. adc-gbt-emu is inserted before data-reader and mute gbt link if it is on.
 
 adc-gbt-emu control:
 \begin{itemize}
 \item turn\_on - mute input gbt link and output generated data if is on.
 \item adc\_id - adc board index placed in event header
-\item event\_rate is number of GBT clock cycles between packets (from start to start of packet). If previous packet was not sent, and is time to generate new one, new one is skipped.
+\item event\_rate is number of 40Mhz clock cycles between packets (from start to start of packet). If previous packet was not sent, and is time to generate new one, new one is skipped.
 \item event\_len - number of hits per event 1 ... 255. Emulate fired channels.
 \item hit\_len - number of hit words, including hit header 1 ... 255. Emulate waveform data
 \end{itemize}
 
-Emulator FSM is based on three counters, simulation signals diagram is presented on figure \ref{fig:gbt-emu-sg}; generated data format is presented on figure \ref{tab:gbt-emu-format}.
+Emulator FSM is based on three counters, simulation signals diagram is presented on fig.~\ref{fig:gbt-emu-sg}; generated data format is presented on tab.~\ref{tab:gbt-emu-format}.
 
 \begin{figure}[H]
 	\centering 
@@ -530,27 +530,38 @@ event header & 0xB & ADC idx** & \multicolumn{2}{c|}{0x0} & n hits & packet len 
 
 
 % ###########################################
-\subsection{ADC GBT reader}\label{sec:data-reader}
-ADC GBT reader reads GBT packets from one GBT link and store its to fifo event\_fifo. With last packet data word header word pushed to separate fifo header\_ fifo with packet length and microslice index. Event packet skipped when one of fifos is full. After reset fsm starts wait microslice header. Packets reads according to size in header and fsm wait next packet or microslice header. If next word after packet is neither ms or packet header, fsm starts wait ms header. Data drop info state is not implemented yet. Signal diagram is presented on figure \ref{fig:11}. 
-
+\subsection{ADC data reader}\label{sec:data-reader}
+adc-data-reader reads GBT packets from one GBT link and store its to event-fifo. Then last data word is pushed to event-fifo, header word with packet length and microslice index pushed to separate header-fifo. adc-data-reader is muted then adc-data-sorter is not ready, also link could be muted by AGWB.
+If corrupted data detected, corrupted counter increased by one. If fifos are semi-full, dropped counter increased by one and data are throttling until fifo will have space for event. Current FSM is dummy, signal diagram is presented on figure \ref{fig:11}. 
+ 
 \begin{figure}[H]
 	\centering 
 	\includegraphics[width=1.0\textwidth]{ADC_GBT_reader_wave.png}
 	\caption{\label{fig:11} ADC GBT packets reader}
 \end{figure}
 
+TODO: update FSM with hit word idx 0x3
+
 
 
 % ###########################################
-\subsection{GBT Data Sorter component}\label{sec:data-sorter}
-Components header\_fifo and event\_fifo from adc-gbt-readers for all gbt links are connected to gbt-data-sorter component. Each new microslice value collected in ms-fifo. FSM switch thought all gbt links and read all one by one links with microslice less or equal to current microslice. Data for links with equal microslice to current-ms output from the sorter, for links with less microslice data is dropped. When all links have ms higher than current ms or are empty means that all data for current microslie are read. Such condition starts counter to wait data from all links. Then counter reach value 127, FSM swithced to next-ms state. Next microslice read from fifo and header with new ms value sent to output stream. Signal diagram presented on figure \ref{fig:10} Output data represent combined GBT packets from all GBT link. All events from GBT links for one microslice follows one after another. Data for different microslices divided by microslice header with format 0xDAF0 + microslice (64bit). 
+\subsection{ADC Data Sorter}\label{sec:data-sorter}
+adc-data-sorter reads data from fifos at adc-data-reader units and sort data by microslice index (mcs). Number of gbt links is generic parameter, currently it is 2. Output data flow as mcs header and events packets from all gbt links is forwarded to flim-iface or data-readout units. If fifo of target unit has no space for packet, dropped flag is raised and hit-drop counter increased for each event. If dropped flag is raised while new mcs is opened, mcs-drop counter increased by one and entire mcs is dropped.
+
+Components header-fifo and event-fifo from adc-data-readers for all gbt links are connected to gbt-data-sorter component. Each new mcs value from TFC or local generator stored in ms-fifo. After first mcs pushed to fifo, reader-ready signal is raised and adc-data-reader start send data.
+
+FSM loop thought all gbt links and read one by one only links with mcs less or equal to current mcs. Data for links with equal mcs are forwarded to output, for links with less mcs data is dropped.  As ADC take mcs from CRI via GBT, gbt link is empty means that data for current mcs still can appears with delay. After new mcs pushed to fifo, data-delay-offset counter started. If the counter is equal to offset value, mcs-ready signal raised. 
+When all links have mcs higher than current mcs or empty and mcs-ready singal raised means that all data for current mcs are read. If all gbt links are not empty, mcs-ready singal is ignored.
+
+After all links are ready for next mcs, FSM swithced to next-mcs state. Next mcs read from fifo and header with new mcs value sent to output stream. Simulation signal diagram presented on fig.~\ref{fig:data-sorter} Output data represent combined GBT packets from all GBT link. All events from GBT links for one mcs follows one after another. Data for different mcs divided by mcs header with format 0xDAF0 + microslice (64bit). 
 
 \begin{figure}[H]
 	\centering 
-	\includegraphics[width=1.0\textwidth]{gbt-sorter-waves.png}
-	\caption{\label{fig:10} gbt-data-sorter signals diagram: mew ms read and event sent from one link }
+	\includegraphics[width=1.0\textwidth]{pic_signals/gbt-sorter.png}
+	\caption{\label{fig:data-sorter} gbt-data-sorter signals diagram: mew ms read and event sent from one link, [could be not actual]}
 \end{figure}
 
+TODO: pucture actual signal diagram
 
 
 % ###########################################
