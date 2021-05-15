@@ -164,6 +164,8 @@ event header & 0xB & ADC idx** & \multicolumn{2}{c|}{0x0} & n fired channels & w
 \caption{GBT data format. [* number of GBT words in event packet: event header + all hit packets] [** ADC board index] \label{tab1}}
 \end{table}
 
+Maximum event packet size is ms header + event header + 32 * (hit header + 8 * hit data) = 290 GBT words.
+
 \begin{table}[H]
 \centering
 \begin{tabular}{| l | l | l | l | l | l |}
@@ -306,7 +308,7 @@ addr & 31 .. 30 & 29 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 14 & 13 .. 1
 \begin{tabular}{| l | l | l | l | l | l | l | l | l |}
 \hline
 addr & 31 .. 28 & 27 .. 24 & 23 .. 20 & 19 .. 16 & 15 .. 12 & 11 .. 8 & 7 .. 4 & 3 .. 0 \\ \hline
-16 & \multicolumn{2}{c|}{0x0} & \multicolumn{2}{c|}{status ch sel} & waveform length 0..3 [(reg+1)*4] & strobe offset 0..12 & \multicolumn{2}{c|}{control bits} \\ \hline
+16 & \multicolumn{2}{c|}{0x0} & \multicolumn{2}{c|}{status ch sel} & waveform length 0..7 [(reg+1)*4] & strobe offset 0..12 & \multicolumn{2}{c|}{control bits} \\ \hline
 17 & \multicolumn{8}{c|}{negative channel mask ibit = ich} \\ \hline
 18 & \multicolumn{8}{c|}{I2C HV bus} \\ \hline
 19 & \multicolumn{8}{c|}{microslice gen counter@25ns} \\ \hline
